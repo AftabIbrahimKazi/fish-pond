@@ -63,6 +63,7 @@ export const MindPanel: React.FC<MindPanelProps> = ({ telemetry }) => {
     <section
       aria-labelledby="fp-arena-mind-title"
       className={`${styles['fp-arena-panel']} d-flex flex-column gap-[var(--fp-space-default)] p-[var(--fp-space-md)]`}
+      data-surface="flat"
       data-panel="mind"
     >
       <header className="d-flex align-items-center justify-content-between">

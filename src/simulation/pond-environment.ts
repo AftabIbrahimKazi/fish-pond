@@ -21,6 +21,9 @@ const CAUSTIC_VERTEX_SHADER = `
 
 const CAUSTIC_FRAGMENT_SHADER = `
   uniform float uTime;
+  uniform float uFadeStart;
+  uniform float uFadeEnd;
+  uniform vec3 uWaterColor;
   varying vec2 vUv;
   varying vec3 vWorldPosition;
 
@@ -35,14 +38,15 @@ const CAUSTIC_FRAGMENT_SHADER = `
 
   void main() {
     float caustics = causticPattern(vWorldPosition.xz, uTime);
-    vec3 floorColor = vec3(0.04, 0.09, 0.16);
-    vec3 causticLight = vec3(0.12, 0.45, 0.65) * caustics;
+    vec3 floorColor = vec3(0.05, 0.16, 0.19);
+    vec3 causticLight = vec3(0.2, 0.6, 0.66) * caustics;
     
     // Depth fog attenuation (simulate light absorption through water column)
     float depthFactor = clamp((vWorldPosition.y + 4.0) / 8.0, 0.0, 1.0);
     vec3 finalColor = mix(floorColor * 0.6, floorColor + causticLight, depthFactor);
 
-    gl_FragColor = vec4(finalColor, 1.0);
+    float fade = smoothstep(uFadeStart, uFadeEnd, length(vWorldPosition.xz));
+    gl_FragColor = vec4(mix(finalColor, uWaterColor, fade), 1.0);
   }
 `;
 
@@ -61,6 +65,12 @@ const CAMERA_BASE_HEIGHT = 5.0 as const;
 const CAMERA_FRAME_MARGIN = 1.5 as const;
 const CAMERA_LOOK_Y = -0.5 as const;
 const FOG_DENSITY = 0.03 as const;
+const WATER_COLOR = 0x0a2a33 as const;
+const WATER_COLOR_SRGB: readonly [number, number, number] = [0x0a / 255, 0x2a / 255, 0x33 / 255];
+const FLOOR_SCALE = 8 as const;
+const FLOOR_FADE_START = 14 as const;
+const FLOOR_FADE_END = 34 as const;
+const CAGE_OPACITY = 0.05 as const;
 const DEGREES_TO_RADIANS = Math.PI / 180;
 const HALF = 0.5 as const;
 
@@ -84,8 +94,8 @@ export function createPondEnvironment(
   bounds: PondBoundsConfig = POND_BOUNDS
 ): PondSceneEnvironment {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x040813);
-  scene.fog = new THREE.FogExp2(0x040813, FOG_DENSITY);
+  scene.background = new THREE.Color(WATER_COLOR);
+  scene.fog = new THREE.FogExp2(WATER_COLOR, FOG_DENSITY);
 
   const initialAspect = canvas.clientWidth / (canvas.clientHeight || 1);
   const camera = new THREE.PerspectiveCamera(CAMERA_FOV_DEGREES, initialAspect, 0.1, 80);
@@ -102,11 +112,11 @@ export function createPondEnvironment(
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   // Ambient aquatic lighting
-  const ambientLight = new THREE.AmbientLight(0x133854, 1.4);
+  const ambientLight = new THREE.AmbientLight(0x2a6a72, 1.6);
   scene.add(ambientLight);
 
   // Directional sun beam light
-  const sunLight = new THREE.DirectionalLight(0x78d9fc, 2.2);
+  const sunLight = new THREE.DirectionalLight(0xc8e1e1, 2.4);
   sunLight.position.set(4, 12, 6);
   sunLight.castShadow = true;
   sunLight.shadow.mapSize.width = 1024;
@@ -114,8 +124,8 @@ export function createPondEnvironment(
   scene.add(sunLight);
 
   // Caustic Pond Floor
-  const floorWidth = (bounds.MAX_X - bounds.MIN_X) * 1.5;
-  const floorDepth = (bounds.MAX_Z - bounds.MIN_Z) * 1.5;
+  const floorWidth = (bounds.MAX_X - bounds.MIN_X) * FLOOR_SCALE;
+  const floorDepth = (bounds.MAX_Z - bounds.MIN_Z) * FLOOR_SCALE;
   const floorGeometry = new THREE.PlaneGeometry(floorWidth, floorDepth, 32, 32);
   floorGeometry.rotateX(-Math.PI / 2);
   floorGeometry.translate(0, bounds.MIN_Y - 0.2, 0);
@@ -125,6 +135,9 @@ export function createPondEnvironment(
     fragmentShader: CAUSTIC_FRAGMENT_SHADER,
     uniforms: {
       uTime: { value: 0 },
+      uFadeStart: { value: FLOOR_FADE_START },
+      uFadeEnd: { value: FLOOR_FADE_END },
+      uWaterColor: { value: new THREE.Vector3(...WATER_COLOR_SRGB) }, // raw sRGB: this shader skips colour-space conversion
     },
   });
   const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -138,10 +151,10 @@ export function createPondEnvironment(
     bounds.MAX_Z - bounds.MIN_Z
   );
   const cageMaterial = new THREE.MeshBasicMaterial({
-    color: 0x184265,
+    color: 0x5fc1d3,
     wireframe: true,
     transparent: true,
-    opacity: 0.18,
+    opacity: CAGE_OPACITY,
   });
   const cageMesh = new THREE.Mesh(cageGeometry, cageMaterial);
   cageMesh.position.set(0, 0, 0);
@@ -158,7 +171,7 @@ export function createPondEnvironment(
   const particleGeometry = new THREE.BufferGeometry();
   particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
   const particleMaterial = new THREE.PointsMaterial({
-    color: 0x4ac7e8,
+    color: 0xd9f4f2,
     size: 0.08,
     transparent: true,
     opacity: 0.45,

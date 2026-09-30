@@ -3,76 +3,103 @@
    ================================ */
 
 .fp-landing {
-  background-color: var(--fp-color-bg-canvas);
-  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  z-index: var(--fp-z-raised);
 }
 
 .fp-landing-title {
-  color: var(--fp-color-text-main);
+  color: var(--fp-glass-text);
   font-size: var(--fp-font-size-xl);
   font-weight: var(--fp-font-weight-bold);
   letter-spacing: var(--fp-tracking-tight);
   line-height: var(--fp-leading-tight);
+  text-align: center;
+  text-shadow: 0 1px 12px var(--fp-color-neutral-950-a75);
 }
 
 .fp-landing-tagline {
-  color: var(--fp-color-text-muted);
+  color: var(--fp-glass-text);
   font-size: var(--fp-font-size-default);
+  text-shadow: 0 1px 8px var(--fp-color-neutral-950-a75);
 }
 
 .fp-landing-grid {
-  grid-template-columns: repeat(3, 1fr);
-  max-width: var(--fp-size-lg);
+  grid-template-columns: repeat(2, 1fr);
+  max-width: var(--fp-size-md);
 }
 
 .fp-landing-card {
-  background-color: var(--fp-color-surface);
-  border: 1px solid var(--fp-color-surface-border);
-  border-radius: var(--fp-radius-md);
-  color: var(--fp-color-text-main);
-  transition: border-color var(--fp-duration-fast) ease, background-color var(--fp-duration-fast) ease;
+  backdrop-filter: blur(var(--fp-glass-blur)) saturate(var(--fp-glass-saturate));
+  background-color: var(--fp-glass-tint);
+  border: 1px solid var(--fp-glass-border);
+  border-radius: var(--fp-glass-radius-pane);
+  box-shadow: inset 0 1px 0 var(--fp-glass-highlight), 0 var(--fp-glass-lift) var(--fp-glass-lift-blur) var(--fp-glass-shadow);
+  color: var(--fp-glass-text);
+  transition: background-color var(--fp-duration-normal) ease-in-out, transform var(--fp-duration-normal) ease-in-out;
 }
 
 .fp-landing-card:hover {
-  background-color: var(--fp-color-surface-raised);
-  border-color: var(--fp-color-accent-telemetry);
+  background-color: var(--fp-glass-tint-hover);
+  transform: translateY(calc(-1 * var(--fp-space-xxxs)));
 }
 
 .fp-landing-card:focus-visible {
-  outline: 2px solid var(--fp-color-accent-telemetry);
+  outline: 2px solid var(--fp-glass-text);
   outline-offset: 2px;
 }
 
 .fp-landing-order {
-  color: var(--fp-color-accent-telemetry);
+  color: var(--fp-glass-text-muted);
   font-family: var(--fp-font-family-mono);
   font-size: var(--fp-font-size-xs);
 }
 
 .fp-landing-card-title {
-  color: var(--fp-color-text-main);
+  color: var(--fp-glass-text);
   font-size: var(--fp-font-size-md);
-  font-weight: var(--fp-font-weight-semibold);
+  font-weight: var(--fp-font-weight-medium);
   line-height: var(--fp-leading-tight);
 }
 
 .fp-landing-card-summary {
-  color: var(--fp-color-text-muted);
+  color: var(--fp-glass-text-muted);
   font-size: var(--fp-font-size-sm);
 }
 
 .fp-landing-cta {
-  color: var(--fp-color-accent-telemetry);
+  color: var(--fp-glass-text);
   font-size: var(--fp-font-size-sm);
   font-weight: var(--fp-font-weight-semibold);
+  min-height: var(--fp-glass-hit);
 }
 
 /* ================================
    BOTTOM HALF — Media Queries
    ================================ */
 
-@media (max-width: 767.98px) {
+@supports not (backdrop-filter: blur(1px)) {
+  .fp-landing-card {
+    background-color: var(--fp-glass-tint-strong);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .fp-landing-card {
+    backdrop-filter: none;
+    background-color: var(--fp-glass-tint-strong);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fp-landing-card:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 991.98px) {
   .fp-landing-grid {
     grid-template-columns: 1fr;
+    max-width: var(--fp-size-default);
   }
 }

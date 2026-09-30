@@ -29,9 +29,48 @@ body {
 
 * {
   box-sizing: border-box;
+  scrollbar-color: var(--fp-glass-toggle-on) transparent;
+  scrollbar-width: thin;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Soft page-to-page cross-fade (React <ViewTransition> in template.tsx) */
+
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-old(.fp-page-out) {
+  animation: fp-page-fade-out var(--fp-duration-slow) ease-in-out both;
+}
+
+::view-transition-new(.fp-page-in) {
+  animation: fp-page-fade-in var(--fp-duration-slow) ease-in-out both;
+}
+
+@keyframes fp-page-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fp-page-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(.fp-page-out),
+  ::view-transition-new(.fp-page-in) {
+    animation: none;
+  }
 }

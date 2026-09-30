@@ -8,6 +8,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 
+import { CloseIcon, EyeIcon, EyeOffIcon, TargetIcon } from '../../components/HudIcons';
 import { ArenaScene } from '../../components/arena/ArenaScene';
 import { ArenaToolbar } from '../../components/arena/ArenaToolbar';
 import { DecisionTimeline } from '../../components/arena/DecisionTimeline';
@@ -49,6 +50,8 @@ export default function ArenaPage() {
   const [memorySpan, setMemorySpan] = useState(() => controller.getMemorySpan());
   const [activeTab, setActiveTab] = useState<ArenaTab>('palette');
   const [isScenariosOpen, setIsScenariosOpen] = useState(false);
+  const [isHudHidden, setIsHudHidden] = useState(false);
+  const [isStimuliOpen, setIsStimuliOpen] = useState(false);
 
   const handleSelectStimulus = useCallback((kind: StimulusKind): void => {
     if (INSTANT_KINDS.includes(kind)) {
@@ -107,9 +110,11 @@ export default function ArenaPage() {
   }, [handleReset, handleSelectStimulus]);
 
   return (
-    <div
+    <main
       className={`${styles['fp-arena']} position-relative w-100 overflow-hidden`}
       data-active-tab={activeTab}
+      data-hud-state={isHudHidden ? 'hidden' : 'visible'}
+      data-left-state={isStimuliOpen ? 'open' : 'closed'}
     >
       <ArenaScene
         controller={controller}
@@ -135,6 +140,26 @@ export default function ArenaPage() {
         onSpeedChange={setSimSpeed}
         onReset={handleReset}
       />
+
+      <button
+        type="button"
+        className={`${styles['fp-arena-stimuli-toggle']} d-inline-flex align-items-center justify-content-center gap-[var(--fp-space-xs)] px-[var(--fp-space-default)] py-[var(--fp-space-xs)] position-absolute`}
+        aria-expanded={isStimuliOpen}
+        onClick={() => setIsStimuliOpen((current) => !current)}
+      >
+        {isStimuliOpen ? <CloseIcon /> : <TargetIcon />}
+        {isStimuliOpen ? 'Hide stimuli' : 'Stimuli'}
+      </button>
+
+      <button
+        type="button"
+        className={`${styles['fp-arena-hud-toggle']} d-inline-flex align-items-center justify-content-center gap-[var(--fp-space-xs)] px-[var(--fp-space-default)] py-[var(--fp-space-xs)] position-absolute`}
+        aria-pressed={isHudHidden}
+        onClick={() => setIsHudHidden((current) => !current)}
+      >
+        {isHudHidden ? <EyeIcon /> : <EyeOffIcon />}
+        {isHudHidden ? 'Show HUD' : 'Hide HUD'}
+      </button>
 
       <p
         className={`${styles['fp-arena-hint-ts']} position-absolute px-[var(--fp-space-md)] py-[var(--fp-space-xs)]`}
@@ -189,6 +214,6 @@ export default function ArenaPage() {
           </button>
         ))}
       </nav>
-    </div>
+    </main>
   );
 }

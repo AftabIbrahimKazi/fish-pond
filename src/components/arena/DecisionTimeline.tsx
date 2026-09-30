@@ -44,7 +44,8 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({ telemetry })
   return (
     <section
       aria-labelledby="fp-arena-timeline-title"
-      className={`${styles['fp-arena-panel']} ${styles['fp-arena-timeline']} d-flex flex-column gap-[var(--fp-space-default)] p-[var(--fp-space-md)]`}
+      className={`${styles['fp-arena-panel']} d-flex flex-column gap-[var(--fp-space-default)] p-[var(--fp-space-md)]`}
+      data-surface="flat"
       data-panel="log"
     >
       <header className="d-flex align-items-center justify-content-between gap-[var(--fp-space-md)]">

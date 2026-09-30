@@ -9,7 +9,13 @@
 
 .fp-underwater-canvas {
   left: 0;
+  opacity: 1;
   top: 0;
+  transition: opacity var(--fp-duration-slow) ease-in-out;
+}
+
+.fp-underwater-canvas[data-ready-state="loading"] {
+  opacity: 0;
 }
 
 .fp-underwater-header {
@@ -35,40 +41,49 @@
   text-shadow: 0 1px 8px var(--fp-color-neutral-950-a75);
 }
 
-.fp-underwater-back {
-  background-color: var(--fp-glass-tint);
+.fp-underwater-back,
+.fp-underwater-chip-button {
   backdrop-filter: blur(var(--fp-glass-blur)) saturate(var(--fp-glass-saturate));
+  background-color: var(--fp-glass-tint);
   border: 1px solid var(--fp-glass-border);
   border-radius: var(--fp-glass-radius-control);
   box-shadow: inset 0 1px 0 var(--fp-glass-highlight), 0 var(--fp-glass-lift) var(--fp-glass-lift-blur) var(--fp-glass-shadow);
   color: var(--fp-glass-text);
+  cursor: pointer;
   font-size: var(--fp-font-size-xs);
   font-weight: var(--fp-font-weight-semibold);
-  min-height: 2.5rem;
+  min-height: var(--fp-glass-hit);
   pointer-events: auto;
   transition: background-color var(--fp-duration-fast) ease;
 }
 
-.fp-underwater-back:hover {
-  background-color: var(--fp-glass-tint-strong);
+.fp-underwater-back:hover,
+.fp-underwater-chip-button:hover {
+  background-color: var(--fp-glass-tint-hover);
 }
 
-.fp-underwater-back:focus-visible {
+.fp-underwater-back:focus-visible,
+.fp-underwater-chip-button:focus-visible,
+.fp-underwater-settings-tab-ts:focus-visible,
+.fp-underwater-setting-range:focus-visible,
+.fp-underwater-setting-number:focus-visible,
+.fp-underwater-setting-color:focus-visible {
   outline: 2px solid var(--fp-glass-text);
   outline-offset: 2px;
 }
 
 .fp-underwater-hint,
 .fp-underwater-status {
-  background-color: var(--fp-glass-tint);
   backdrop-filter: blur(var(--fp-glass-blur)) saturate(var(--fp-glass-saturate));
+  background-color: var(--fp-glass-tint);
   border: 1px solid var(--fp-glass-border);
   border-radius: var(--fp-glass-radius-control);
   box-shadow: inset 0 1px 0 var(--fp-glass-highlight), 0 var(--fp-glass-lift) var(--fp-glass-lift-blur) var(--fp-glass-shadow);
-  color: var(--fp-glass-text-muted);
+  color: var(--fp-glass-text);
   font-size: var(--fp-font-size-xs);
   left: 50%;
   max-width: calc(100vw - 2 * var(--fp-space-md));
+  width: max-content;
   text-align: center;
   transform: translateX(-50%);
   z-index: var(--fp-z-raised);
@@ -103,12 +118,344 @@
   color: var(--fp-glass-text-muted);
 }
 
+/* HUD */
+
+.fp-underwater-hud-toggle {
+  bottom: var(--fp-space-md);
+  left: var(--fp-space-md);
+  z-index: var(--fp-z-overlay);
+}
+
+.fp-underwater-header,
+.fp-underwater-hint,
+.fp-underwater-settings-ts,
+.fp-underwater-telemetry {
+  transition: opacity var(--fp-duration-slow) ease-in-out, visibility var(--fp-duration-slow) ease-in-out;
+}
+
+.fp-underwater[data-hud-state="hidden"] .fp-underwater-header,
+.fp-underwater[data-hud-state="hidden"] .fp-underwater-hint,
+.fp-underwater[data-hud-state="hidden"] .fp-underwater-settings-ts,
+.fp-underwater[data-hud-state="hidden"] .fp-underwater-telemetry {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.fp-underwater-pads {
+  bottom: 0;
+  display: none;
+  left: 0;
+  pointer-events: none;
+  right: 0;
+  transition: opacity var(--fp-duration-slow) ease-in-out, visibility var(--fp-duration-slow) ease-in-out;
+  z-index: var(--fp-z-raised);
+}
+
+.fp-underwater-pad-title {
+  color: var(--fp-glass-text-muted);
+  font-size: var(--fp-font-size-xxs);
+  font-weight: var(--fp-font-weight-semibold);
+  letter-spacing: var(--fp-tracking-sm);
+  text-shadow: 0 1px 8px var(--fp-color-neutral-950-a75);
+  text-transform: uppercase;
+}
+
+.fp-underwater-pad-grid {
+  gap: var(--fp-space-xs);
+  grid-template-areas: ". up ." "left down right";
+  grid-template-columns: repeat(3, var(--fp-glass-hit));
+}
+
+.fp-underwater-pad-button-ts {
+  align-items: center;
+  backdrop-filter: blur(var(--fp-glass-blur)) saturate(var(--fp-glass-saturate));
+  background-color: var(--fp-glass-tint);
+  border: 1px solid var(--fp-glass-border);
+  border-radius: 50%;
+  box-shadow: inset 0 1px 0 var(--fp-glass-highlight), 0 var(--fp-glass-lift) var(--fp-glass-lift-blur) var(--fp-glass-shadow);
+  color: var(--fp-glass-text);
+  cursor: pointer;
+  display: flex;
+  height: var(--fp-glass-hit);
+  justify-content: center;
+  padding: 0;
+  pointer-events: auto;
+  touch-action: none;
+  transition: background-color var(--fp-duration-fast) ease;
+  user-select: none;
+  width: var(--fp-glass-hit);
+}
+
+.fp-underwater-pad-button-ts[data-area="up"] {
+  grid-area: up;
+}
+
+.fp-underwater-pad-button-ts[data-area="left"] {
+  grid-area: left;
+}
+
+.fp-underwater-pad-button-ts[data-area="down"] {
+  grid-area: down;
+}
+
+.fp-underwater-pad-button-ts[data-area="right"] {
+  grid-area: right;
+}
+
+.fp-underwater-pad-button-ts[data-press-state="down"] {
+  background-color: var(--fp-glass-tint-strong);
+}
+
+.fp-underwater-pad-button-ts:focus-visible {
+  outline: 2px solid var(--fp-glass-text);
+  outline-offset: 2px;
+}
+
+.fp-underwater[data-hud-state="hidden"] .fp-underwater-pads {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Fish readout: text straight on the scene, no card */
+
+.fp-underwater-telemetry {
+  bottom: var(--fp-space-md);
+  color: var(--fp-glass-text);
+  pointer-events: none;
+  right: var(--fp-space-md);
+  text-align: right;
+  text-shadow: 0 1px 10px var(--fp-color-neutral-950-a75);
+  z-index: var(--fp-z-raised);
+}
+
+.fp-underwater-telemetry-name {
+  font-size: var(--fp-font-size-default);
+  font-weight: var(--fp-font-weight-medium);
+  letter-spacing: var(--fp-tracking-tight);
+  line-height: var(--fp-leading-tight);
+}
+
+.fp-underwater-telemetry-state {
+  color: var(--fp-glass-text);
+  font-size: var(--fp-font-size-xs);
+}
+
+.fp-underwater-telemetry-grid {
+  font-family: var(--fp-font-family-mono);
+  font-size: var(--fp-font-size-xxs);
+  gap: var(--fp-space-xxxs) var(--fp-space-md);
+  grid-template-columns: auto auto;
+  margin: 0;
+}
+
+.fp-underwater-telemetry-grid dt {
+  color: var(--fp-glass-text-muted);
+  text-align: right;
+}
+
+.fp-underwater-telemetry-grid dd {
+  margin: 0;
+  text-align: right;
+}
+
+.fp-underwater-telemetry-state [data-tone="threat"],
+.fp-underwater-telemetry-grid dd[data-tone="threat"] {
+  color: var(--fp-color-accent-threat);
+}
+
+.fp-underwater-telemetry-state [data-tone="food"],
+.fp-underwater-telemetry-grid dd[data-tone="food"] {
+  color: var(--fp-color-accent-food);
+}
+
+.fp-underwater-telemetry-state [data-tone="info"] {
+  color: var(--fp-color-accent-telemetry);
+}
+
+.fp-underwater-telemetry-state [data-tone="calm"] {
+  color: var(--fp-color-accent-calm);
+}
+
+/* Settings sidebar */
+
+.fp-underwater-settings-ts {
+  left: var(--fp-space-md);
+  max-height: calc(100dvh - var(--fp-space-xxl) - var(--fp-space-default) - var(--fp-space-md) - var(--fp-glass-hit) - var(--fp-space-sm));
+  top: calc(var(--fp-space-xxl) + var(--fp-space-default));
+  width: min(var(--fp-size-sm), calc(100vw - 2 * var(--fp-space-md)));
+  z-index: var(--fp-z-overlay);
+}
+
+.fp-underwater-settings-pane {
+  backdrop-filter: blur(var(--fp-glass-blur)) saturate(var(--fp-glass-saturate));
+  background-color: var(--fp-glass-tint);
+  border: 1px solid var(--fp-glass-border);
+  border-radius: var(--fp-glass-radius-pane);
+  box-shadow: inset 0 1px 0 var(--fp-glass-highlight), 0 var(--fp-glass-lift) var(--fp-glass-lift-blur) var(--fp-glass-shadow);
+  min-height: 0;
+  opacity: 1;
+  transition: opacity var(--fp-duration-slow) ease-in-out, transform var(--fp-duration-slow) ease-in-out, visibility var(--fp-duration-slow) ease-in-out;
+}
+
+.fp-underwater-settings-ts[data-state="closed"] .fp-underwater-settings-pane {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(-1 * var(--fp-space-md)));
+  visibility: hidden;
+}
+
+.fp-underwater-settings-title {
+  color: var(--fp-glass-text);
+  font-size: var(--fp-font-size-lg);
+  font-weight: var(--fp-font-weight-medium);
+  letter-spacing: var(--fp-tracking-tight);
+  line-height: var(--fp-leading-tight);
+}
+
+.fp-underwater-settings-tabs {
+  border-bottom: 1px solid var(--fp-glass-divider);
+  gap: 0 var(--fp-space-default);
+}
+
+.fp-underwater-settings-tab-ts {
+  background-color: transparent;
+  border: 0;
+  color: var(--fp-glass-text-muted);
+  cursor: pointer;
+  font-size: var(--fp-font-size-xs);
+  font-weight: var(--fp-font-weight-medium);
+  min-height: var(--fp-glass-hit);
+  padding: 0;
+  text-underline-offset: var(--fp-space-sm);
+  transition: color var(--fp-duration-normal) ease-in-out;
+}
+
+.fp-underwater-settings-tab-ts[data-tab-state="active"] {
+  color: var(--fp-glass-text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+
+.fp-underwater-settings-list {
+  overflow-y: auto;
+  padding: 0 var(--fp-space-xs) 0 0;
+  scrollbar-color: var(--fp-glass-toggle-on) transparent;
+  scrollbar-width: thin;
+}
+
+.fp-underwater-setting-label {
+  color: var(--fp-glass-text);
+  font-size: var(--fp-font-size-xs);
+  font-weight: var(--fp-font-weight-medium);
+}
+
+.fp-underwater-setting-value {
+  color: var(--fp-glass-text-muted);
+  font-family: var(--fp-font-family-mono);
+  font-size: var(--fp-font-size-xxs);
+}
+
+.fp-underwater-setting-number {
+  appearance: textfield;
+  background-color: var(--fp-glass-fill);
+  border: 1px solid var(--fp-glass-divider);
+  border-radius: var(--fp-glass-radius-control);
+  color: var(--fp-glass-text);
+  font-family: var(--fp-font-family-mono);
+  font-size: var(--fp-font-size-xxs);
+  min-height: var(--fp-glass-hit);
+  padding: 0 var(--fp-space-sm);
+  text-align: right;
+  width: var(--fp-panel-width-xs);
+}
+
+.fp-underwater-setting-number::-webkit-inner-spin-button,
+.fp-underwater-setting-number::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.fp-underwater-setting-number {
+  transition: background-color var(--fp-duration-normal) ease-in-out;
+}
+
+.fp-underwater-setting-number:hover {
+  background-color: var(--fp-glass-fill-hover);
+}
+
+.fp-underwater-setting-range {
+  appearance: none;
+  background-color: transparent;
+  cursor: pointer;
+  height: var(--fp-glass-hit);
+  margin: 0;
+  width: 100%;
+}
+
+.fp-underwater-setting-range::-webkit-slider-runnable-track {
+  background-color: var(--fp-glass-toggle-off);
+  border-radius: var(--fp-glass-radius-control);
+  height: var(--fp-size-xxxs);
+}
+
+.fp-underwater-setting-range::-webkit-slider-thumb {
+  appearance: none;
+  background-color: var(--fp-glass-text);
+  border-radius: 50%;
+  height: var(--fp-space-md);
+  margin-top: calc((var(--fp-size-xxxs) - var(--fp-space-md)) / 2);
+  width: var(--fp-space-md);
+}
+
+.fp-underwater-setting-range::-moz-range-track {
+  background-color: var(--fp-glass-toggle-off);
+  border-radius: var(--fp-glass-radius-control);
+  height: var(--fp-size-xxxs);
+}
+
+.fp-underwater-setting-range::-moz-range-thumb {
+  background-color: var(--fp-glass-text);
+  border: 0;
+  border-radius: 50%;
+  height: var(--fp-space-md);
+  width: var(--fp-space-md);
+}
+
+.fp-underwater-setting-color {
+  appearance: none;
+  background-color: transparent;
+  border: 1px solid var(--fp-glass-border);
+  border-radius: var(--fp-glass-radius-control);
+  cursor: pointer;
+  height: var(--fp-glass-hit);
+  padding: var(--fp-space-xxs);
+  width: var(--fp-panel-width-xs);
+}
+
+.fp-underwater-setting-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.fp-underwater-setting-color::-webkit-color-swatch {
+  border: 0;
+  border-radius: var(--fp-glass-radius-control);
+}
+
+.fp-underwater-setting-color::-moz-color-swatch {
+  border: 0;
+  border-radius: var(--fp-glass-radius-control);
+}
+
 /* ================================
    BOTTOM HALF — Media Queries
    ================================ */
 
 @supports not (backdrop-filter: blur(1px)) {
+  .fp-underwater-pad-button-ts,
   .fp-underwater-back,
+  .fp-underwater-chip-button,
+  .fp-underwater-settings-pane,
   .fp-underwater-hint,
   .fp-underwater-status {
     background-color: var(--fp-glass-tint-strong);
@@ -116,7 +463,10 @@
 }
 
 @media (prefers-reduced-transparency: reduce) {
+  .fp-underwater-pad-button-ts,
   .fp-underwater-back,
+  .fp-underwater-chip-button,
+  .fp-underwater-settings-pane,
   .fp-underwater-hint,
   .fp-underwater-status {
     background-color: var(--fp-glass-tint-strong);
@@ -124,8 +474,56 @@
   }
 }
 
+@media (pointer: coarse) {
+  .fp-underwater-pads {
+    display: flex;
+  }
+
+  .fp-underwater-hud-toggle {
+    bottom: auto;
+    left: auto;
+    right: var(--fp-space-md);
+    top: calc(var(--fp-space-xxl) + var(--fp-space-default));
+  }
+
+  .fp-underwater-telemetry {
+    bottom: calc(var(--fp-space-md) + 2 * var(--fp-glass-hit) + var(--fp-space-xl) + var(--fp-space-sm));
+  }
+}
+
 @media (max-width: 767.98px) {
-  .fp-underwater-subtitle {
+  .fp-underwater-pads {
+    display: flex;
+  }
+
+  .fp-underwater-hud-toggle {
+    bottom: auto;
+    left: auto;
+    right: var(--fp-space-md);
+    top: calc(var(--fp-space-xxl) + var(--fp-space-default));
+  }
+
+  .fp-underwater-subtitle,
+  .fp-underwater-keys-hint,
+  .fp-underwater-telemetry {
     display: none;
+  }
+
+  .fp-underwater-hint {
+    bottom: calc(var(--fp-space-md) + 2 * var(--fp-glass-hit) + var(--fp-space-xl) + var(--fp-space-sm));
+  }
+
+  .fp-underwater-status {
+    bottom: calc(var(--fp-space-md) + 2 * var(--fp-glass-hit) + var(--fp-space-xl) + var(--fp-space-xxl));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fp-underwater-settings-ts[data-state="closed"] .fp-underwater-settings-pane {
+    transform: none;
+  }
+
+  .fp-underwater-settings-pane {
+    transition: opacity var(--fp-duration-slow) ease-in-out, visibility var(--fp-duration-slow) ease-in-out;
   }
 }

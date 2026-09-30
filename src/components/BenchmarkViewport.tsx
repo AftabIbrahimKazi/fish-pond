@@ -29,6 +29,7 @@ interface BenchmarkViewportProps {
   title: string;
   architectureSubtitle: string;
   badgeLabel: string;
+  isHudHidden?: boolean;
   onTelemetryUpdate?: (telemetry: BehaviorTelemetry) => void;
 }
 
@@ -115,6 +116,7 @@ export const BenchmarkViewport: React.FC<BenchmarkViewportProps> = ({
   title,
   architectureSubtitle,
   badgeLabel,
+  isHudHidden = false,
   onTelemetryUpdate,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -350,23 +352,13 @@ export const BenchmarkViewport: React.FC<BenchmarkViewportProps> = ({
 
   return (
     <div
-      className={`${styles['fp-viewport']} d-flex flex-column position-relative overflow-hidden h-100`}
+      className={`${styles['fp-viewport']} position-relative overflow-hidden h-100`}
       data-case={caseType}
+      data-hud-state={isHudHidden ? 'hidden' : 'visible'}
     >
-      {/* Viewport Top Header */}
+      {/* 3D WebGL Canvas Viewport (full bleed) */}
       <div
-        className={`${styles['fp-viewport-header']} d-flex align-items-center justify-content-between px-[var(--fp-space-md)] py-[var(--fp-space-default)]`}
-      >
-        <div>
-          <h2 className={styles['fp-viewport-title']}>{title}</h2>
-          <span className={styles['fp-viewport-subtitle']}>{architectureSubtitle}</span>
-        </div>
-        <span className={styles['fp-viewport-badge']}>{badgeLabel}</span>
-      </div>
-
-      {/* 3D WebGL Canvas Viewport */}
-      <div
-        className={`${styles['fp-viewport-stage']} position-relative w-100 flex-grow-1`}
+        className={`${styles['fp-viewport-stage']} position-absolute w-100 h-100`}
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
         onClick={handleClick}
@@ -380,60 +372,66 @@ export const BenchmarkViewport: React.FC<BenchmarkViewportProps> = ({
 
         {/* Live Snapping Alert for System 0 */}
         <div
-          className={`${styles['fp-viewport-snap-alert-ts']} position-absolute`}
+          className={`${styles['fp-viewport-snap-alert-ts']} position-absolute px-[var(--fp-space-sm)] py-[var(--fp-space-xxs)]`}
           data-snap-state={telemetry?.isSnapping ? 'active' : 'idle'}
           role="status"
         >
           DISCONTINUITY SNAP
         </div>
-
-        {/* State Floating Pill */}
-        <div
-          className={`${styles['fp-viewport-pill']} d-flex align-items-center gap-[var(--fp-space-xs)] position-absolute`}
-        >
-          <span
-            className={`${styles['fp-viewport-pill-dot-ts']} d-inline-block`}
-            data-tension-state={tensionState}
-            aria-hidden="true"
-          />
-          <span className={styles['fp-viewport-pill-label-ts']}>
-            {telemetry?.stateLabel ?? 'INITIALIZING'}
-          </span>
-        </div>
-
-        {/* Live FPS Counter */}
-        <div className={`${styles['fp-viewport-fps-ts']} position-absolute`}>
-          {telemetry ? `${telemetry.fps} FPS (${telemetry.frameTimeMs.toFixed(1)}ms)` : '-- FPS'}
-        </div>
       </div>
 
-      {/* Telemetry Metrics HUD Footer */}
-      <div className={`${styles['fp-viewport-hud']} d-grid gap-[var(--fp-space-sm)]`}>
-        <div>
-          <div className={styles['fp-viewport-metric-label']}>TAIL FREQ</div>
-          <div className={styles['fp-viewport-metric-value-ts']}>
-            {telemetry?.tailFrequencyHz.toFixed(2) ?? '0.00'} Hz
-          </div>
+      {/* Title, straight on the scene */}
+      <div
+        className={`${styles['fp-viewport-header']} position-absolute d-flex align-items-start justify-content-between gap-[var(--fp-space-default)] px-[var(--fp-space-md)]`}
+      >
+        <div className={`${styles['fp-viewport-heading']} d-flex flex-column`}>
+          <h2 className={styles['fp-viewport-title']}>{title}</h2>
+          <span className={styles['fp-viewport-subtitle']}>{architectureSubtitle}</span>
         </div>
-        <div>
-          <div className={styles['fp-viewport-metric-label']}>SPINE CURVE</div>
-          <div className={styles['fp-viewport-metric-value-ts']}>
-            {((telemetry?.spineCurvature ?? 0) * PERCENT).toFixed(0)}%
+        <span className={styles['fp-viewport-badge']}>{badgeLabel}</span>
+      </div>
+
+      {/* State chips and telemetry, straight on the scene */}
+      <div className={`${styles['fp-viewport-bottom']} position-absolute d-flex flex-column gap-[var(--fp-space-default)] px-[var(--fp-space-md)] pb-[var(--fp-space-md)]`}>
+        <div className="d-flex align-items-center justify-content-between gap-[var(--fp-space-sm)]">
+          <div className={`${styles['fp-viewport-pill']} d-flex align-items-center gap-[var(--fp-space-xs)]`}>
+            <span
+              className={`${styles['fp-viewport-pill-dot-ts']} d-inline-block`}
+              data-tension-state={tensionState}
+              aria-hidden="true"
+            />
+            <span className={styles['fp-viewport-pill-label-ts']}>
+              {telemetry?.stateLabel ?? 'INITIALIZING'}
+            </span>
           </div>
-        </div>
-        <div>
-          <div className={styles['fp-viewport-metric-label']}>TENSION</div>
-          <div className={styles['fp-viewport-metric-value-ts']} data-tension-state={tensionState}>
-            {((telemetry?.tensionScore ?? 0) * PERCENT).toFixed(0)}%
+
+          <div className={styles['fp-viewport-fps-ts']}>
+            {telemetry ? `${telemetry.fps} FPS (${telemetry.frameTimeMs.toFixed(1)}ms)` : '-- FPS'}
           </div>
         </div>
 
-        {/* Probability Distribution or Intent Vector */}
-        {barSegments.length > 0 && (
-          <div className={styles['fp-viewport-probabilities']}>
-            <div className={styles['fp-viewport-probabilities-label']}>
-              PROBABILITY MATRIX / VECTOR CONFIDENCE
+        <div className={`${styles['fp-viewport-hud']} d-grid gap-[var(--fp-space-sm)]`}>
+          <div>
+            <div className={styles['fp-viewport-metric-label']}>Tail</div>
+            <div className={styles['fp-viewport-metric-value-ts']}>
+              {telemetry?.tailFrequencyHz.toFixed(2) ?? '0.00'} Hz
             </div>
+          </div>
+          <div>
+            <div className={styles['fp-viewport-metric-label']}>Spine</div>
+            <div className={styles['fp-viewport-metric-value-ts']}>
+              {((telemetry?.spineCurvature ?? 0) * PERCENT).toFixed(0)}%
+            </div>
+          </div>
+          <div>
+            <div className={styles['fp-viewport-metric-label']}>Tension</div>
+            <div className={styles['fp-viewport-metric-value-ts']} data-tension-state={tensionState}>
+              {((telemetry?.tensionScore ?? 0) * PERCENT).toFixed(0)}%
+            </div>
+          </div>
+
+          {/* Probability Distribution or Intent Vector (always present so the layout never shifts) */}
+          <div className={styles['fp-viewport-probabilities']}>
             <svg
               className={`${styles['fp-viewport-bar-ts']} d-block w-100`}
               viewBox={`0 0 ${PERCENT} ${BAR_HEIGHT_UNITS}`}
@@ -457,7 +455,7 @@ export const BenchmarkViewport: React.FC<BenchmarkViewportProps> = ({
               ))}
             </svg>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

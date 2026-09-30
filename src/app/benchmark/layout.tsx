@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Visual Telemetry Benchmark — Fish Pond',
-  description: 'Side-by-side visual comparison of three fish control architectures: programmed reflex, preset lottery, and dual-process reasoning.',
-  alternates: { canonical: '/benchmark' },
-};
+import { JsonLd } from '../../components/seo/JsonLd';
+import { buildBreadcrumbJsonLd, buildRouteMetadata, buildWebApplicationJsonLd } from '../../config/seo';
+
+export const metadata: Metadata = buildRouteMetadata('benchmark');
 
 export default function BenchmarkLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return (
+    <>
+      <JsonLd data={buildWebApplicationJsonLd('benchmark')} />
+      <JsonLd data={buildBreadcrumbJsonLd('benchmark')} />
+      {children}
+    </>
+  );
 }

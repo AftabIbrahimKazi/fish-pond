@@ -9,6 +9,7 @@
   --fp-font-size-default: 0.95rem;
   --fp-font-size-md: 1.15rem;
   --fp-font-size-lg: 1.25rem;
+  --fp-font-size-xl: 1.75rem;
   --fp-font-weight-medium: 500;
   --fp-font-weight-semibold: 600;
   --fp-font-weight-bold: 700;
@@ -45,6 +46,7 @@
   --fp-color-rose-500: #f43f5e;
   --fp-color-purple-500: #a855f7;
   --fp-color-emerald-500: #10b981;
+  --fp-color-water: #0a2a33;
   --fp-color-neutral-950-a70: rgba(5, 8, 17, 0.7);
   --fp-color-neutral-950-a75: rgba(5, 8, 17, 0.75);
   --fp-color-neutral-950-a95: rgba(5, 8, 17, 0.95);
@@ -129,7 +131,10 @@
   --fp-glass-blur: 28px;
   --fp-glass-saturate: 140%;
   --fp-glass-tint: rgba(14, 38, 34, 0.38);
+  --fp-glass-tint-hover: rgba(14, 38, 34, 0.48);
   --fp-glass-tint-strong: rgba(14, 38, 34, 0.62);
+  --fp-glass-fill: rgba(255, 255, 255, 0.08);
+  --fp-glass-fill-hover: rgba(255, 255, 255, 0.14);
   --fp-glass-border: rgba(255, 255, 255, 0.2);
   --fp-glass-highlight: rgba(255, 255, 255, 0.28);
   --fp-glass-shadow: rgba(0, 0, 0, 0.28);
@@ -140,6 +145,8 @@
   --fp-glass-radius-control: 62rem;
   --fp-glass-toggle-on: rgba(255, 255, 255, 0.62);
   --fp-glass-toggle-off: rgba(255, 255, 255, 0.22);
+  --fp-glass-hit: 2.5rem;
+  --fp-glass-icon: 1rem;
   --fp-glass-lift: 18px;
   --fp-glass-lift-blur: 48px;
 }

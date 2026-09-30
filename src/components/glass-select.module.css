@@ -1,0 +1,99 @@
+/* ================================
+   TOP HALF — Rules
+   ================================ */
+
+.fp-select-button {
+  backdrop-filter: blur(var(--fp-glass-blur)) saturate(var(--fp-glass-saturate));
+  background-color: var(--fp-glass-tint);
+  border: 1px solid var(--fp-glass-border);
+  border-radius: var(--fp-glass-radius-control);
+  box-shadow: inset 0 1px 0 var(--fp-glass-highlight), 0 var(--fp-glass-lift) var(--fp-glass-lift-blur) var(--fp-glass-shadow);
+  color: var(--fp-glass-text);
+  cursor: pointer;
+  font-size: var(--fp-font-size-xs);
+  font-weight: var(--fp-font-weight-semibold);
+  min-height: var(--fp-glass-hit);
+  transition: background-color var(--fp-duration-normal) ease-in-out;
+}
+
+.fp-select-button:hover {
+  background-color: var(--fp-glass-tint-hover);
+}
+
+.fp-select-button:focus-visible,
+.fp-select-option-ts:focus-visible {
+  outline: 2px solid var(--fp-glass-text);
+  outline-offset: 2px;
+}
+
+.fp-select-list {
+  backdrop-filter: blur(var(--fp-glass-blur)) saturate(var(--fp-glass-saturate));
+  background-color: var(--fp-glass-tint);
+  border: 1px solid var(--fp-glass-border);
+  border-radius: var(--fp-glass-radius-pane);
+  box-shadow: inset 0 1px 0 var(--fp-glass-highlight), 0 var(--fp-glass-lift) var(--fp-glass-lift-blur) var(--fp-glass-shadow);
+  list-style: none;
+  margin: var(--fp-space-xs) 0 0 0;
+  min-width: 100%;
+  opacity: 0;
+  pointer-events: none;
+  right: 0;
+  top: 100%;
+  transform: translateY(calc(-1 * var(--fp-space-xs)));
+  transition: opacity var(--fp-duration-normal) ease-in-out, transform var(--fp-duration-normal) ease-in-out, visibility var(--fp-duration-normal) ease-in-out;
+  visibility: hidden;
+  z-index: var(--fp-z-flash);
+}
+
+.fp-select[data-state="open"] .fp-select-list {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  visibility: visible;
+}
+
+.fp-select-option-ts {
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--fp-glass-radius-control);
+  color: var(--fp-glass-text-muted);
+  cursor: pointer;
+  font-size: var(--fp-font-size-xs);
+  font-weight: var(--fp-font-weight-semibold);
+  min-height: var(--fp-glass-hit);
+  transition: background-color var(--fp-duration-fast) ease-in-out, color var(--fp-duration-fast) ease-in-out;
+}
+
+.fp-select-option-ts:hover {
+  background-color: var(--fp-glass-fill-hover);
+}
+
+.fp-select-option-ts[data-option-state="selected"] {
+  background-color: var(--fp-glass-fill);
+  color: var(--fp-glass-text);
+}
+
+/* ================================
+   BOTTOM HALF — Media Queries
+   ================================ */
+
+@supports not (backdrop-filter: blur(1px)) {
+  .fp-select-button,
+  .fp-select-list {
+    background-color: var(--fp-glass-tint-strong);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .fp-select-button,
+  .fp-select-list {
+    backdrop-filter: none;
+    background-color: var(--fp-glass-tint-strong);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fp-select-list {
+    transform: none;
+  }
+}

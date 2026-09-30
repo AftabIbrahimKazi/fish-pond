@@ -1,0 +1,9 @@
+/* TEAM */
+Author: Aftab Ibrahim Kazi
+Site: https://github.com/AftabIbrahimKazi
+
+/* SITE */
+Last update: 2026/10/01
+Language: English
+Standards: HTML5, CSS3, WebGL 2, TypeScript
+Components: Next.js, React, Three.js, Triforge, Strata CSS

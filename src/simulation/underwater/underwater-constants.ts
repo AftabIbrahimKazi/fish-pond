@@ -14,50 +14,41 @@ export const DOME_RADIUS = 240 as const;
 export const CAMERA_FAR = 320 as const;
 
 /* Water column */
-export const FOG_COLOR = '#0f5f6c' as const;
-export const FOG_DENSITY = 0.036 as const;
-export const ABSORPTION_RED = 0.26 as const;
-export const ABSORPTION_GREEN = 0.11 as const;
-export const ABSORPTION_BLUE = 0.07 as const;
 export const DISPLAY_GAMMA = 2.2 as const;
 
 /* Lighting */
 export const SUN_DIRECTION: readonly [number, number, number] = [0.32, 1, 0.18];
-export const SUN_COLOR = '#e6f7f0' as const;
-export const SUN_INTENSITY = 3.1 as const;
 export const SUN_SHADOW_MAP_SIZE = 2048 as const;
 export const SUN_SHADOW_EXTENT = 9 as const;
 export const SUN_DISTANCE = 26 as const;
-export const HEMI_SKY_COLOR = '#5fc1d3' as const;
 export const HEMI_GROUND_COLOR = '#3b3524' as const;
-export const HEMI_INTENSITY = 0.7 as const;
-export const ENVIRONMENT_INTENSITY = 0.75 as const;
 export const TRIFORGE_SUN_COLOR: readonly [number, number, number] = [3.4, 3.4, 3.2];
 export const TRIFORGE_AMBIENT_COLOR: readonly [number, number, number] = [0.3, 0.44, 0.5];
+/** The Triforge sun and ambient colours above match these slider values; the sliders scale them from here. */
+export const TRIFORGE_SUN_REFERENCE_INTENSITY = 3.1 as const;
+export const TRIFORGE_AMBIENT_REFERENCE_INTENSITY = 0.7 as const;
 
 /* Caustics */
-export const CAUSTIC_SCALE_A = 130 as const;
-export const CAUSTIC_SCALE_B = 205 as const;
-export const CAUSTIC_SPEED_A = 26 as const;
-export const CAUSTIC_SPEED_B = 34 as const;
-export const CAUSTIC_STRENGTH = 2.4 as const;
-export const CAUSTIC_DEPTH_FALLOFF = 0.085 as const;
-export const CAUSTIC_COLOR = '#c8f4f0' as const;
 
 /* Camera */
-export const CAMERA_FOV = 42 as const;
 export const CAMERA_NEAR = 0.1 as const;
 export const CAMERA_BASE_POSITION: readonly [number, number, number] = [0, 2.6, 10.6];
 export const CAMERA_TARGET: readonly [number, number, number] = [0, 2.4, 0];
-export const CAMERA_DRIFT_RADIUS = 0.9 as const;
-export const CAMERA_DRIFT_SPEED = 0.07 as const;
-export const CAMERA_BOB_AMPLITUDE = 0.12 as const;
 export const CAMERA_BOB_SPEED = 0.33 as const;
-export const CAMERA_PARALLAX_X = 1.3 as const;
-export const CAMERA_PARALLAX_Y = 0.7 as const;
-export const CAMERA_PARALLAX_DAMPING = 1.8 as const;
 export const CAMERA_LOOK_X = 2.2 as const;
 export const CAMERA_LOOK_Y = 2.4 as const;
+
+/* Keyboard navigation: WASD moves, arrow keys rotate */
+export const NAV_SPEED = 4.5 as const;
+export const NAV_SMOOTHING = 8 as const;
+export const NAV_TURN_SPEED = 1.3 as const;
+export const NAV_PITCH_LIMIT = 1.1 as const;
+export const NAV_BOUNDS_X = 16 as const;
+export const NAV_MIN_Z = -22 as const;
+export const NAV_MAX_Z = 14 as const;
+export const NAV_GROUND_CLEARANCE = 0.7 as const;
+export const NAV_SURFACE_CLEARANCE = 0.7 as const;
+export const NAV_KEY_CODES: readonly string[] = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
 
 /* Renderer */
 export const MAX_PIXEL_RATIO = 1.5 as const;
@@ -65,45 +56,27 @@ export const MIN_PIXEL_RATIO = 1 as const;
 export const QUALITY_SAMPLE_FRAMES = 90 as const;
 export const QUALITY_SLOW_FRAME_SECONDS = 0.027 as const;
 export const QUALITY_RATIO_STEP = 0.25 as const;
-export const TONE_MAPPING_EXPOSURE = 1.05 as const;
 export const MAX_FRAME_SECONDS = 0.05 as const;
 export const MS_TO_SECONDS = 0.001 as const;
 export const MULTISAMPLE_COUNT = 4 as const;
 
 /* Post processing (Triforge compositor) */
-export const BLOOM_THRESHOLD = 0.72 as const;
-export const BLOOM_STRENGTH = 0.42 as const;
-export const BLOOM_RADIUS = 0.75 as const;
 // Triforge's three-backend vignette only behaves for offset <= 1: low offset widens the falloff band.
-export const VIGNETTE_DARKNESS = 0.42 as const;
-export const VIGNETTE_OFFSET = 0.25 as const;
-export const GRAIN_INTENSITY = 0.035 as const;
-export const GRADE_LIFT_R = -0.012 as const;
-export const GRADE_LIFT_G = 0.004 as const;
-export const GRADE_LIFT_B = 0.014 as const;
-export const GRADE_GAIN_R = 0.96 as const;
-export const GRADE_GAIN_G = 1.02 as const;
-export const GRADE_GAIN_B = 1.04 as const;
-export const GRADE_SATURATION = 1.08 as const;
 export const HUE_NEUTRAL = 0.5 as const;
 
 /* Volumetric light shafts */
-export const SHAFT_COUNT = 12 as const;
 export const SHAFT_WIDTH_MIN = 1.6 as const;
 export const SHAFT_WIDTH_MAX = 4.6 as const;
 export const SHAFT_LENGTH = 15 as const;
 export const SHAFT_SPREAD_X = 22 as const;
 export const SHAFT_SPREAD_Z = 16 as const;
-export const SHAFT_INTENSITY = 0.42 as const;
+export const SHAFT_MAX_COUNT = 24 as const;
 
 /* Marine snow */
-export const PARTICLE_COUNT = 900 as const;
+export const PARTICLE_MAX_COUNT = 1800 as const;
 export const PARTICLE_EXTENT_X = 22 as const;
 export const PARTICLE_EXTENT_Y = 8.5 as const;
 export const PARTICLE_EXTENT_Z = 20 as const;
-export const PARTICLE_SIZE = 0.05 as const;
-export const PARTICLE_OPACITY = 0.55 as const;
-export const PARTICLE_DRIFT_SPEED = 0.07 as const;
 export const PARTICLE_SPRITE_SIZE = 64 as const;
 
 /* Scenery */
@@ -158,8 +131,6 @@ export const SEAGRASS_PATCHES: readonly SeagrassPatch[] = [
   { x: -4.6, z: 5.2, radius: 1.1, height: 1.1, bladeCount: 36 },
 ];
 export const SEAGRASS_SEGMENTS = 5 as const;
-export const SEAGRASS_SWAY_SPEED = 0.85 as const;
-export const SEAGRASS_SWAY_AMPLITUDE = 0.34 as const;
 export const SEAGRASS_BLADE_WIDTH = 0.085 as const;
 export const SEAGRASS_UP_NORMAL_BIAS = 0.6 as const;
 export const SCENERY_SEED = 20260930 as const;
@@ -173,9 +144,6 @@ export const BASIN_RISE_START = 26 as const;
 export const BASIN_RISE_END = 50 as const;
 export const BASIN_RISE_HEIGHT = 7 as const;
 export const FISH_SHADOW_LIFT = 0.04 as const;
-export const FISH_SHADOW_BASE_SIZE = 1.1 as const;
-export const FISH_SHADOW_SPREAD = 0.11 as const;
-export const FISH_SHADOW_OPACITY = 0.42 as const;
 
 /* Fish species */
 export const SPECIES_PROFILES: readonly SpeciesProfile[] = [
@@ -333,11 +301,5 @@ export const FOOD_PLANE_Z = 0 as const;
 export const FOOD_MIN_Y = 0.8 as const;
 
 /* Lighting rig */
-export const RIM_COLOR = '#58c0d2' as const;
-export const RIM_INTENSITY = 1.15 as const;
 export const RIM_POSITION: readonly [number, number, number] = [-6, 4, -14];
-export const FILL_COLOR = '#7fd1d6' as const;
-export const FILL_INTENSITY = 0.55 as const;
 export const FILL_POSITION: readonly [number, number, number] = [5, 1.5, 14];
-export const DAPPLE_AMOUNT = 0.16 as const;
-export const DAPPLE_SPEED = 0.9 as const;

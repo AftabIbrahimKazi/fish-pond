@@ -10,8 +10,6 @@ import {
   SCENERY_SEED,
   SEAGRASS_BLADE_WIDTH,
   SEAGRASS_SEGMENTS,
-  SEAGRASS_SWAY_AMPLITUDE,
-  SEAGRASS_SWAY_SPEED,
   SEAGRASS_UP_NORMAL_BIAS,
   SeagrassPatch,
 } from './underwater-constants';
@@ -59,7 +57,7 @@ export class SeagrassAnimation {
     this._sampleHeight = sampleHeight;
   }
 
-  public init(): BufferGeometry {
+  public init(swaySpeed: number, swayAmplitude: number): BufferGeometry {
     const random = buildSeededRandom(SCENERY_SEED);
     this._blades = this._buildBlades(random);
 
@@ -102,23 +100,23 @@ export class SeagrassAnimation {
     geometry.setAttribute('uv', new BufferAttribute(uvs, 2));
     geometry.setIndex(new BufferAttribute(indices, 1));
     this._geometry = geometry;
-    this.update(0);
+    this.update(0, swaySpeed, swayAmplitude);
     geometry.computeBoundingSphere();
     return geometry;
   }
 
-  public update(timeSeconds: number): void {
+  public update(timeSeconds: number, swaySpeed: number, swayAmplitude: number): void {
     const positions = this._positions;
     const geometry = this._geometry;
     if (!positions || !geometry) return;
 
     const rows = SEAGRASS_SEGMENTS + 1;
     this._blades.forEach((blade, bladeIndex) => {
-      const wind = timeSeconds * SEAGRASS_SWAY_SPEED + blade.phase + blade.baseX * WIND_SPATIAL_X + blade.baseZ * WIND_SPATIAL_Z;
+      const wind = timeSeconds * swaySpeed + blade.phase + blade.baseX * WIND_SPATIAL_X + blade.baseZ * WIND_SPATIAL_Z;
       const primary = Math.sin(wind) + Math.sin(wind * SWAY_HARMONIC_SPEED + blade.phase * SWAY_HARMONIC_PHASE) * SWAY_HARMONIC_WEIGHT;
       const cross = Math.cos(wind * SWAY_HARMONIC_SPEED) * CROSS_SWAY_WEIGHT;
-      const swayX = (WIND_X * primary - WIND_Z * cross) * SEAGRASS_SWAY_AMPLITUDE * blade.length;
-      const swayZ = (WIND_Z * primary + WIND_X * cross) * SEAGRASS_SWAY_AMPLITUDE * blade.length;
+      const swayX = (WIND_X * primary - WIND_Z * cross) * swayAmplitude * blade.length;
+      const swayZ = (WIND_Z * primary + WIND_X * cross) * swayAmplitude * blade.length;
       const sideX = -Math.sin(blade.azimuth);
       const sideZ = Math.cos(blade.azimuth);
 

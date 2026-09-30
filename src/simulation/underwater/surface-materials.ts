@@ -17,6 +17,7 @@ import {
 import type { OutputSocket } from '@triforge/shader-core';
 import { DoubleSide, ShaderMaterial } from 'three';
 
+import { SceneSettings } from '../../types/underwater';
 import {
   TriforgeClock,
   buildCausticLight,
@@ -112,27 +113,33 @@ function buildAlbedo(geometry: Geometry, config: SurfaceMaterialConfig): { albed
   return { albedo: buildMix('MIX', mossMask, grained, config.mossColor), grain };
 }
 
-function buildLitSurface(albedo: OutputSocket, bsdf: OutputSocket, geometry: Geometry, causticGain: number): OutputSocket {
+function buildLitSurface(
+  albedo: OutputSocket,
+  bsdf: OutputSocket,
+  geometry: Geometry,
+  causticGain: number,
+  settings: SceneSettings,
+): OutputSocket {
   const shaded = new ShaderToRGB({ shader: bsdf }).output('Color');
-  const causticTint = buildMix('MULTIPLY', NEUTRAL_FAC, albedo, buildCausticLight(geometry));
+  const causticTint = buildMix('MULTIPLY', NEUTRAL_FAC, albedo, buildCausticLight(geometry, settings));
   return buildMix('ADD', causticGain, shaded, causticTint);
 }
 
-function buildFinishedOutput(lit: OutputSocket): MaterialOutput {
-  const display = buildDisplayToLinear(buildWaterColumn(lit));
+function buildFinishedOutput(lit: OutputSocket, settings: SceneSettings): MaterialOutput {
+  const display = buildDisplayToLinear(buildWaterColumn(lit, settings));
   return new MaterialOutput({ surface: new Emission({ color: display }).output('BSDF') });
 }
 
-export function buildSurfaceMaterial(config: SurfaceMaterialConfig, clock: TriforgeClock): ShaderMaterial {
+export function buildSurfaceMaterial(config: SurfaceMaterialConfig, clock: TriforgeClock, settings: SceneSettings): ShaderMaterial {
   const geometry = new Geometry();
   const { albedo, grain } = buildAlbedo(geometry, config);
   const normal = new Bump({ height: grain, strength: config.bumpStrength, distance: BUMP_DISTANCE }).output('Normal');
   const bsdf = new PrincipledBSDF({ baseColor: albedo, roughness: config.roughness, ior: SAND_IOR, normal }).output('BSDF');
-  return finaliseMaterial(buildFinishedOutput(buildLitSurface(albedo, bsdf, geometry, config.causticGain)), clock);
+  return finaliseMaterial(buildFinishedOutput(buildLitSurface(albedo, bsdf, geometry, config.causticGain, settings), settings), clock);
 }
 
 /** Seagrass: dark rooted base to sun-bright tip, with a little transmitted glow on the blade. */
-export function buildFoliageMaterial(clock: TriforgeClock): ShaderMaterial {
+export function buildFoliageMaterial(clock: TriforgeClock, settings: SceneSettings): ShaderMaterial {
   const geometry = new Geometry();
   const uv = new TextureCoordinate().output('UV');
   const height = buildChannel(uv, 'G');
@@ -140,9 +147,9 @@ export function buildFoliageMaterial(clock: TriforgeClock): ShaderMaterial {
   const bsdf = new PrincipledBSDF({ baseColor: albedo, roughness: BLADE_ROUGHNESS, ior: BLADE_IOR }).output('BSDF');
   const shaded = new ShaderToRGB({ shader: bsdf }).output('Color');
   const glow = buildMix('MULTIPLY', NEUTRAL_FAC, albedo, buildGreyColor(buildMath('MULTIPLY', height, BLADE_GLOW)));
-  const causticTint = buildMix('MULTIPLY', NEUTRAL_FAC, albedo, buildCausticLight(geometry));
+  const causticTint = buildMix('MULTIPLY', NEUTRAL_FAC, albedo, buildCausticLight(geometry, settings));
   const lit = buildMix('ADD', NEUTRAL_FAC, buildMix('ADD', NEUTRAL_FAC, shaded, causticTint), glow);
-  const material = finaliseMaterial(buildFinishedOutput(lit), clock);
+  const material = finaliseMaterial(buildFinishedOutput(lit, settings), clock);
   material.side = DoubleSide;
   return material;
 }

@@ -9,6 +9,17 @@
 import React, { useCallback, useRef, useState } from 'react';
 
 import { BenchmarkViewport } from '../../components/BenchmarkViewport';
+import {
+  CloseIcon,
+  EyeIcon,
+  EyeOffIcon,
+  FishIcon,
+  FoodIcon,
+  PointerIcon,
+  TableIcon,
+  TimerIcon,
+  TrashIcon,
+} from '../../components/HudIcons';
 import { telemetryBus } from '../../simulation/telemetry-bus';
 import { BenchmarkCase, InputMode } from '../../types/benchmark';
 
@@ -51,25 +62,23 @@ const MATRIX_ROWS: MatrixRow[] = [
 ];
 
 function describeBanner(inputMode: InputMode, isThreatActive: boolean): string {
-  if (inputMode !== 'INTERACTIVE') {
-    return 'Automated Benchmark Running: Pre-recorded coordinate sequence piped concurrently to all viewports';
-  }
-  return isThreatActive
-    ? 'Hand Threat Active: Move cursor to steer threat vector. Use the Drop Food Pellet button, or click a pond, to drop food'
-    : 'Interactive Telemetry Area: Move mouse here to simulate descending hand threat';
+  if (inputMode !== 'INTERACTIVE') return 'Test cycle running · every pond gets the same inputs';
+  return isThreatActive ? 'Threat active · click a pond to drop food' : 'Move the cursor over the ponds to steer a threat';
 }
 
 export default function BenchmarkDashboard() {
   const [inputMode, setInputMode] = useState<InputMode>('INTERACTIVE');
   const [isThreatActive, setIsThreatActive] = useState(false);
-  const interactionAreaRef = useRef<HTMLDivElement | null>(null);
+  const [isHudHidden, setIsHudHidden] = useState(false);
+  const [isMatrixOpen, setIsMatrixOpen] = useState(false);
+  const interactionAreaRef = useRef<HTMLElement | null>(null);
 
   const handleModeChange = useCallback((newMode: InputMode): void => {
     setInputMode(newMode);
     telemetryBus.setMode(newMode);
   }, []);
 
-  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLDivElement>): void => {
+  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLElement>): void => {
     if (inputMode !== 'INTERACTIVE') return;
     const target = interactionAreaRef.current;
     if (!target) return;
@@ -96,160 +105,155 @@ export default function BenchmarkDashboard() {
     telemetryBus.clearFood();
   }, []);
 
-  const modeButtonClass = `${styles['fp-dashboard-mode-button-ts']} px-[var(--fp-space-default)] py-[var(--fp-space-xs)]`;
-  const actionButtonClass = `${styles['fp-dashboard-action-button']} px-[var(--fp-space-default)] py-[var(--fp-space-xs)]`;
+  const modeButtonClass = `${styles['fp-dashboard-mode-button-ts']} d-inline-flex align-items-center gap-[var(--fp-space-xs)] px-[var(--fp-space-default)] py-[var(--fp-space-xs)]`;
+  const actionButtonClass = `${styles['fp-dashboard-action-button']} d-inline-flex align-items-center gap-[var(--fp-space-xs)] px-[var(--fp-space-default)] py-[var(--fp-space-xs)]`;
 
   return (
-    <div className={`${styles['fp-dashboard']} d-flex flex-column`}>
-      {/* Benchmark Header */}
-      <header className={`${styles['fp-dashboard-header']} px-[var(--fp-space-xl)] py-[var(--fp-space-md)]`}>
-        <div
-          className={`${styles['fp-dashboard-header-inner']} d-flex flex-wrap justify-content-between align-items-center gap-[var(--fp-space-md)] mx-auto`}
-        >
-          <div>
-            <div className="d-flex align-items-center gap-[var(--fp-space-default)]">
-              <span className={styles['fp-dashboard-icon']} aria-hidden="true">🐟</span>
-              <h1 className={styles['fp-dashboard-title']}>
-                Fish in a Pond — Visual Telemetry Benchmark
-              </h1>
-            </div>
-            <p className={`${styles['fp-dashboard-tagline']} mt-[var(--fp-space-xxxs)]`}>
-              Empirical visual comparison of 3 control architectures running identical procedural scenes via Triforge & Strata CSS.
-            </p>
+    <div className={`${styles['fp-dashboard']} d-flex flex-column position-relative`} data-hud-state={isHudHidden ? 'hidden' : 'visible'}>
+      {/* Floating header: title, live hint and controls, straight on the scene */}
+      <header className={`${styles['fp-dashboard-header']} d-flex justify-content-between align-items-center gap-[var(--fp-space-md)] px-[var(--fp-space-md)]`}>
+        <div className={`${styles['fp-dashboard-heading']} d-flex flex-column gap-[var(--fp-space-xxs)]`}>
+          <div className="d-flex align-items-center gap-[var(--fp-space-sm)]">
+            <span className={styles['fp-dashboard-icon']}><FishIcon /></span>
+            <h1 className={styles['fp-dashboard-title']}>Fish in a Pond — Visual Telemetry Benchmark</h1>
           </div>
+          <p
+            className={styles['fp-dashboard-hint-ts']}
+            data-threat-state={isThreatActive ? 'active' : 'idle'}
+            role="status"
+          >
+            {describeBanner(inputMode, isThreatActive)}
+          </p>
+        </div>
 
-          {/* Centralized Telemetry Injection Toolbar */}
-          <div className="d-flex align-items-center flex-wrap gap-[var(--fp-space-default)]">
-            <div className={`${styles['fp-dashboard-toggle']} d-flex`}>
-              <button
-                type="button"
-                className={modeButtonClass}
-                data-mode="INTERACTIVE"
-                data-mode-state={inputMode === 'INTERACTIVE' ? 'active' : 'idle'}
-                aria-pressed={inputMode === 'INTERACTIVE'}
-                onClick={() => handleModeChange('INTERACTIVE')}
-              >
-                <span aria-hidden="true">🎮</span> Interactive Cursor
-              </button>
-              <button
-                type="button"
-                className={modeButtonClass}
-                data-mode="AUTOMATED_BENCHMARK"
-                data-mode-state={inputMode === 'AUTOMATED_BENCHMARK' ? 'active' : 'idle'}
-                aria-pressed={inputMode === 'AUTOMATED_BENCHMARK'}
-                onClick={() => handleModeChange('AUTOMATED_BENCHMARK')}
-              >
-                <span aria-hidden="true">⏱️</span> Synchronized Test Cycle
-              </button>
-            </div>
-
+        <div className={`${styles['fp-dashboard-controls']} d-flex align-items-center gap-[var(--fp-space-sm)]`}>
+          <div className={`${styles['fp-dashboard-toggle']} d-flex`}>
             <button
               type="button"
-              className={actionButtonClass}
-              data-action="food"
-              onClick={handleDropFood}
+              className={modeButtonClass}
+              data-mode="INTERACTIVE"
+              data-mode-state={inputMode === 'INTERACTIVE' ? 'active' : 'idle'}
+              aria-label="Interactive cursor"
+              aria-pressed={inputMode === 'INTERACTIVE'}
+              onClick={() => handleModeChange('INTERACTIVE')}
             >
-              <span aria-hidden="true">🍤</span> Drop Food Pellet
+              <PointerIcon />
+              <span className={styles['fp-dashboard-chip-label']}>Cursor</span>
             </button>
-
             <button
               type="button"
-              className={actionButtonClass}
-              data-action="clear"
-              onClick={handleClearFood}
+              className={modeButtonClass}
+              data-mode="AUTOMATED_BENCHMARK"
+              data-mode-state={inputMode === 'AUTOMATED_BENCHMARK' ? 'active' : 'idle'}
+              aria-label="Synchronized test cycle"
+              aria-pressed={inputMode === 'AUTOMATED_BENCHMARK'}
+              onClick={() => handleModeChange('AUTOMATED_BENCHMARK')}
             >
-              Clear
+              <TimerIcon />
+              <span className={styles['fp-dashboard-chip-label']}>Test cycle</span>
             </button>
           </div>
+
+          <button type="button" className={actionButtonClass} data-action="food" aria-label="Drop food" onClick={handleDropFood}>
+            <FoodIcon />
+            <span className={styles['fp-dashboard-chip-label']}>Drop food</span>
+          </button>
+
+          <button type="button" className={actionButtonClass} data-action="clear" aria-label="Clear food" onClick={handleClearFood}>
+            <TrashIcon />
+            <span className={styles['fp-dashboard-chip-label']}>Clear</span>
+          </button>
+
+          <button
+            type="button"
+            className={actionButtonClass}
+            data-action="compare"
+            aria-label="Compare architectures"
+            aria-expanded={isMatrixOpen}
+            aria-controls="fp-dashboard-matrix"
+            onClick={() => setIsMatrixOpen((current) => !current)}
+          >
+            {isMatrixOpen ? <CloseIcon /> : <TableIcon />}
+            <span className={styles['fp-dashboard-chip-label']}>Compare</span>
+          </button>
         </div>
       </header>
 
-      {/* Main Benchmark Comparison Area */}
+      {/* Three full-bleed viewports; the whole surface steers the interactive threat */}
       <main
-        className={`${styles['fp-dashboard-main']} d-flex flex-column flex-grow-1 w-100 mx-auto p-[var(--fp-space-lg)] gap-[var(--fp-space-lg)]`}
+        ref={interactionAreaRef}
+        className={`${styles['fp-dashboard-grid']} d-grid w-100`}
+        data-input-mode={inputMode}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
-        {/* Synchronized Interaction Surface Banner */}
-        <div
-          ref={interactionAreaRef}
-          className={`${styles['fp-dashboard-banner-ts']} d-flex align-items-center justify-content-between px-[var(--fp-space-md)] py-[var(--fp-space-default)]`}
-          data-input-mode={inputMode}
-          data-threat-state={isThreatActive ? 'active' : 'idle'}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-        >
-          <div className="d-flex align-items-center gap-[var(--fp-space-sm)]">
-            <span aria-hidden="true">{isThreatActive ? '🖐️' : '🎯'}</span>
-            <span className={styles['fp-dashboard-banner-text']}>
-              {describeBanner(inputMode, isThreatActive)}
-            </span>
-          </div>
-          <span className={styles['fp-dashboard-pipeline']}>PIPELINE: BUS BROADCAST (3 VIEWPORTS)</span>
-        </div>
-
-        {/* 3-Viewport Synchronized Side-by-Side Comparison Grid */}
-        <div className={`${styles['fp-dashboard-grid']} d-grid gap-[var(--fp-space-lg)]`}>
-          {/* Viewport 1: Case 1 System 0 Reflex */}
-          <BenchmarkViewport
-            caseType={BenchmarkCase.SYSTEM_0_REFLEX}
-            title="Case 1: Programmed Reflex"
-            architectureSubtitle="Static Threshold Tree (Binary Snapping)"
-            badgeLabel="System 0"
-          />
-
-          {/* Viewport 2: Case 2 Hybrid S1 Lottery */}
-          <BenchmarkViewport
-            caseType={BenchmarkCase.SYSTEM_1_LOTTERY}
-            title="Case 2: Intuitive Preset Lottery"
-            architectureSubtitle="Laya-AI (System 1) + Dynamic Preset Lerp"
-            badgeLabel="System 1"
-          />
-
-          {/* Viewport 3: Case 3 Dual-Process Autonomous Organism */}
-          <BenchmarkViewport
-            caseType={BenchmarkCase.SYSTEM_2_DUAL_PROCESS}
-            title="Case 3: Autonomous Organism"
-            architectureSubtitle="Dual-Process: System 1 Intent + ReasonLite Multi-Axis"
-            badgeLabel="Dual-Process"
-          />
-        </div>
-
-        {/* Empirical Comparison Analysis Card */}
-        <section className={`${styles['fp-dashboard-matrix']} p-[var(--fp-space-lg)]`}>
-          <h2 className={`${styles['fp-dashboard-matrix-title']} mb-[var(--fp-space-default)]`}>
-            Empirical Architecture Comparison Matrix
-          </h2>
-          <div className="overflow-x-auto">
-            <table className={styles['fp-dashboard-table']}>
-              <thead>
-                <tr>
-                  <th scope="col">Feature / Characteristic</th>
-                  <th scope="col" data-case={BenchmarkCase.SYSTEM_0_REFLEX}>Case 1: System 0 (Reflex)</th>
-                  <th scope="col" data-case={BenchmarkCase.SYSTEM_1_LOTTERY}>Case 2: System 1 (Preset Lottery)</th>
-                  <th scope="col" data-case={BenchmarkCase.SYSTEM_2_DUAL_PROCESS}>Case 3: Dual-Process (Organism)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {MATRIX_ROWS.map((row) => (
-                  <tr key={row.feature}>
-                    <td>{row.feature}</td>
-                    <td>{row.reflex}</td>
-                    <td>{row.lottery}</td>
-                    <td>{row.organism}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <BenchmarkViewport
+          caseType={BenchmarkCase.SYSTEM_0_REFLEX}
+          title="Case 1: Programmed Reflex"
+          architectureSubtitle="Static Threshold Tree (Binary Snapping)"
+          badgeLabel="System 0"
+          isHudHidden={isHudHidden}
+        />
+        <BenchmarkViewport
+          caseType={BenchmarkCase.SYSTEM_1_LOTTERY}
+          title="Case 2: Intuitive Preset Lottery"
+          architectureSubtitle="Laya-AI (System 1) + Dynamic Preset Lerp"
+          badgeLabel="System 1"
+          isHudHidden={isHudHidden}
+        />
+        <BenchmarkViewport
+          caseType={BenchmarkCase.SYSTEM_2_DUAL_PROCESS}
+          title="Case 3: Autonomous Organism"
+          architectureSubtitle="Dual-Process: System 1 Intent + ReasonLite Multi-Axis"
+          badgeLabel="Dual-Process"
+          isHudHidden={isHudHidden}
+        />
       </main>
 
-      {/* Footer */}
-      <footer
-        className={`${styles['fp-dashboard-footer']} d-flex justify-content-between align-items-center px-[var(--fp-space-xl)] py-[var(--fp-space-default)]`}
+      {/* Comparison matrix: a glass pane that opens on demand */}
+      <aside
+        id="fp-dashboard-matrix"
+        className={`${styles['fp-dashboard-matrix-ts']} d-flex flex-column gap-[var(--fp-space-md)] p-[var(--fp-space-xl)]`}
+        data-state={isMatrixOpen ? 'open' : 'closed'}
+        aria-label="Architecture comparison"
       >
-        <span>Fish Pond Benchmark Suite — Next.js 16 + Triforge + Strata CSS</span>
-        <span>Physical Safety Clamping: ACTIVE (All Viewports)</span>
-      </footer>
+        <h2 className={styles['fp-dashboard-matrix-title']}>Empirical Architecture Comparison Matrix</h2>
+        <div className="overflow-x-auto">
+          <table className={styles['fp-dashboard-table']}>
+            <thead>
+              <tr>
+                <th scope="col">Feature / Characteristic</th>
+                <th scope="col" data-case={BenchmarkCase.SYSTEM_0_REFLEX}>Case 1: System 0 (Reflex)</th>
+                <th scope="col" data-case={BenchmarkCase.SYSTEM_1_LOTTERY}>Case 2: System 1 (Preset Lottery)</th>
+                <th scope="col" data-case={BenchmarkCase.SYSTEM_2_DUAL_PROCESS}>Case 3: Dual-Process (Organism)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MATRIX_ROWS.map((row) => (
+                <tr key={row.feature}>
+                  <td>{row.feature}</td>
+                  <td>{row.reflex}</td>
+                  <td>{row.lottery}</td>
+                  <td>{row.organism}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className={styles['fp-dashboard-note']}>
+          Fish Pond Benchmark Suite — Next.js 16 + Triforge + Strata CSS · Physical Safety Clamping: ACTIVE (all viewports)
+        </p>
+      </aside>
+
+      <button
+        type="button"
+        className={`${styles['fp-dashboard-hud-toggle']} d-inline-flex align-items-center justify-content-center gap-[var(--fp-space-xs)] px-[var(--fp-space-default)] py-[var(--fp-space-xs)]`}
+        aria-pressed={isHudHidden}
+        onClick={() => setIsHudHidden((current) => !current)}
+      >
+        {isHudHidden ? <EyeIcon /> : <EyeOffIcon />}
+        {isHudHidden ? 'Show HUD' : 'Hide HUD'}
+      </button>
     </div>
   );
 }

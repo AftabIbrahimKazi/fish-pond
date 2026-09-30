@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { ArrowRightIcon } from '../components/HudIcons';
+import { LandingBackdrop } from '../components/landing/LandingBackdrop';
+import { JsonLd } from '../components/seo/JsonLd';
+import { buildExperimentListJsonLd, buildRouteMetadata } from '../config/seo';
+
 import styles from './landing.module.css';
 
-export const metadata: Metadata = {
-  title: 'Fish Pond — Cognition Lab',
-  description: 'Three scenes: the Cognitive Arena (instinct versus deliberation), the three-case Visual Telemetry Benchmark, and a realistic Triforge-shaded underwater scene.',
-  alternates: { canonical: '/' },
-};
+export const metadata: Metadata = buildRouteMetadata('home');
 
 interface ExperimentLink {
   href: string;
@@ -39,11 +40,21 @@ const EXPERIMENT_LINKS: ExperimentLink[] = [
     summary: 'A realistic underwater scene: caustics, light shafts, water absorption and two real goldfish models, all shaded and graded with Triforge.',
     cta: 'Dive in',
   },
+  {
+    href: '/docs',
+    order: '04',
+    title: 'Documentation',
+    summary: 'Everything about how Fish Pond works: the fish AI systems, the Triforge shader pipeline, controls, the settings workflow and the design system.',
+    cta: 'Read the docs',
+  },
 ];
 
 export default function LandingPage() {
   return (
-    <main className={`${styles['fp-landing']} d-flex flex-column justify-content-center align-items-center flex-grow-1 p-[var(--fp-space-xl)] gap-[var(--fp-space-xl)]`}>
+    <>
+      <JsonLd data={buildExperimentListJsonLd()} />
+      <LandingBackdrop />
+      <main className={`${styles['fp-landing']} d-flex flex-column justify-content-center align-items-center flex-grow-1 p-[var(--fp-space-xl)] gap-[var(--fp-space-xl)]`}>
       <header className="d-flex flex-column align-items-center gap-[var(--fp-space-sm)]">
         <h1 className={styles['fp-landing-title']}>Fish Pond</h1>
         <p className={styles['fp-landing-tagline']}>Choose an experiment</p>
@@ -59,10 +70,14 @@ export default function LandingPage() {
             <span className={styles['fp-landing-order']}>{link.order}</span>
             <h2 className={styles['fp-landing-card-title']}>{link.title}</h2>
             <p className={styles['fp-landing-card-summary']}>{link.summary}</p>
-            <span className={styles['fp-landing-cta']}>{link.cta} <span aria-hidden="true">→</span></span>
+            <span className={`${styles['fp-landing-cta']} d-inline-flex align-items-center gap-[var(--fp-space-xs)]`}>
+              {link.cta}
+              <ArrowRightIcon />
+            </span>
           </Link>
         ))}
       </nav>
-    </main>
+      </main>
+    </>
   );
 }

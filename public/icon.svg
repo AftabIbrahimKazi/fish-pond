@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Fish Pond">
+  <defs>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f7a8c"/>
+      <stop offset="1" stop-color="#0a2a33"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#water)"/>
+  <path d="M170 256C220 170 330 160 400 256 330 352 220 342 170 256Z" fill="#f59e0b"/>
+  <path d="M176 256 96 188v136Z" fill="#f59e0b"/>
+  <path d="M236 214c26 14 26 70 0 84" fill="none" stroke="#fbbf24" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="338" cy="240" r="15" fill="#0a2a33"/>
+  <circle cx="343" cy="235" r="5" fill="#ffffff"/>
+</svg>

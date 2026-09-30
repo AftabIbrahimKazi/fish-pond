@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Underwater — Fish Pond',
-  description: 'A realistic underwater scene shaded and graded entirely with Triforge: caustics, light shafts, water absorption and two real goldfish models.',
-  alternates: { canonical: '/underwater' },
-};
+import { JsonLd } from '../../components/seo/JsonLd';
+import { buildBreadcrumbJsonLd, buildRouteMetadata, buildWebApplicationJsonLd } from '../../config/seo';
+
+export const metadata: Metadata = buildRouteMetadata('underwater');
 
 export default function UnderwaterLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return (
+    <>
+      <JsonLd data={buildWebApplicationJsonLd('underwater')} />
+      <JsonLd data={buildBreadcrumbJsonLd('underwater')} />
+      {children}
+    </>
+  );
 }

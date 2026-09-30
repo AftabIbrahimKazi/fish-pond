@@ -27,6 +27,7 @@ import {
   Quaternion,
   Raycaster,
   Scene,
+  ShaderMaterial,
   SphereGeometry,
   Texture,
   Vector2,
@@ -43,7 +44,15 @@ import {
   Vignette,
 } from '@triforge/compositor-core';
 
-import { CursorThreat, FishAgent, FishMode, UnderwaterEngineCallbacks, UnderwaterLoadState } from '../../types/underwater';
+import {
+  CursorThreat,
+  FishAgent,
+  FishMode,
+  FishTelemetry,
+  SceneSettings,
+  UnderwaterEngineCallbacks,
+  UnderwaterLoadState,
+} from '../../types/underwater';
 import { buildSeededRandom } from '../prng';
 import { buildDomeMaterial, buildFishShadowMaterial, buildLightShaftMaterial, buildWaterSurfaceMaterial } from './atmosphere-materials';
 import { FishBodyAnimation } from './fish-body-animation';
@@ -55,98 +64,74 @@ import { SeagrassAnimation } from './seagrass-animation';
 import { ROCK_CONFIG, SEABED_CONFIG, buildFoliageMaterial, buildSurfaceMaterial } from './surface-materials';
 import { buildClock } from './triforge-graph';
 import {
-  BLOOM_RADIUS,
-  BLOOM_STRENGTH,
-  BLOOM_THRESHOLD,
   CAMERA_BASE_POSITION,
-  CAMERA_BOB_AMPLITUDE,
   CAMERA_BOB_SPEED,
-  CAMERA_DRIFT_RADIUS,
-  CAMERA_DRIFT_SPEED,
   CAMERA_FAR,
-  CAMERA_FOV,
   CAMERA_NEAR,
   CAMERA_LOOK_X,
   CAMERA_LOOK_Y,
-  CAMERA_PARALLAX_DAMPING,
-  CAMERA_PARALLAX_X,
-  CAMERA_PARALLAX_Y,
   CAMERA_TARGET,
   DOME_RADIUS,
-  DAPPLE_AMOUNT,
   ENTRY_DELAYS,
   ENTRY_EDGE_X,
   ENTRY_TARGET_X,
-  DAPPLE_SPEED,
-  ENVIRONMENT_INTENSITY,
-  FILL_COLOR,
-  FILL_INTENSITY,
   FILL_POSITION,
   FISH_CEILING_Y,
   FISH_DOMAIN_MAX_X,
   FISH_DOMAIN_MAX_Z,
   FISH_DOMAIN_MIN_X,
   FISH_DOMAIN_MIN_Z,
+  FISH_SHADOW_LIFT,
   FOOD_MIN_Y,
   FOOD_PLANE_Z,
-  TEMPERAMENTS,
-  SPECIES_PROFILES,
-  RIM_COLOR,
-  RIM_INTENSITY,
-  RIM_POSITION,
-  FISH_SHADOW_BASE_SIZE,
-  FISH_SHADOW_LIFT,
-  FISH_SHADOW_SPREAD,
-  FOG_COLOR,
-  FOG_DENSITY,
-  GRADE_GAIN_B,
-  GRADE_GAIN_G,
-  GRADE_GAIN_R,
-  GRADE_LIFT_B,
-  GRADE_LIFT_G,
-  GRADE_LIFT_R,
-  GRADE_SATURATION,
-  GRAIN_INTENSITY,
   HEMI_GROUND_COLOR,
-  HEMI_INTENSITY,
-  HEMI_SKY_COLOR,
   HUE_NEUTRAL,
   MAX_FRAME_SECONDS,
   MAX_PIXEL_RATIO,
   MIN_PIXEL_RATIO,
   MS_TO_SECONDS,
   MULTISAMPLE_COUNT,
-  PARTICLE_COUNT,
-  QUALITY_RATIO_STEP,
-  QUALITY_SAMPLE_FRAMES,
-  QUALITY_SLOW_FRAME_SECONDS,
-  PARTICLE_DRIFT_SPEED,
+  NAV_BOUNDS_X,
+  NAV_GROUND_CLEARANCE,
+  NAV_KEY_CODES,
+  NAV_MAX_Z,
+  NAV_MIN_Z,
+  NAV_PITCH_LIMIT,
+  NAV_SMOOTHING,
+  NAV_SPEED,
+  NAV_SURFACE_CLEARANCE,
+  NAV_TURN_SPEED,
   PARTICLE_EXTENT_X,
   PARTICLE_EXTENT_Y,
   PARTICLE_EXTENT_Z,
-  PARTICLE_OPACITY,
-  PARTICLE_SIZE,
+  PARTICLE_MAX_COUNT,
   PARTICLE_SPRITE_SIZE,
+  QUALITY_RATIO_STEP,
+  QUALITY_SAMPLE_FRAMES,
+  QUALITY_SLOW_FRAME_SECONDS,
+  RIM_POSITION,
   ROCK_BURY_FRACTION,
   ROCK_PLACEMENTS,
-  SEAGRASS_PATCHES,
   SCENERY_SEED,
-  SHAFT_COUNT,
+  SEAGRASS_PATCHES,
   SHAFT_LENGTH,
+  SHAFT_MAX_COUNT,
   SHAFT_SPREAD_X,
   SHAFT_SPREAD_Z,
   SHAFT_WIDTH_MAX,
   SHAFT_WIDTH_MIN,
-  SUN_COLOR,
+  SPECIES_PROFILES,
   SUN_DIRECTION,
   SUN_DISTANCE,
-  SUN_INTENSITY,
   SURFACE_SIZE,
   SURFACE_Y,
-  TONE_MAPPING_EXPOSURE,
-  VIGNETTE_DARKNESS,
-  VIGNETTE_OFFSET,
+  TEMPERAMENTS,
+  TRIFORGE_AMBIENT_COLOR,
+  TRIFORGE_AMBIENT_REFERENCE_INTENSITY,
+  TRIFORGE_SUN_COLOR,
+  TRIFORGE_SUN_REFERENCE_INTENSITY,
 } from './underwater-constants';
+import { GRAPH_SETTING_KEYS, POST_SETTING_KEYS, hasSettingChanged } from './underwater-settings';
 
 const QUARTER_TURN = Math.PI / 2;
 const TWO_PI = Math.PI * 2;
@@ -180,6 +165,23 @@ const DAPPLE_SECOND_WEIGHT = 0.6 as const;
 const DAPPLE_THIRD_RATE = 4.1 as const;
 const DAPPLE_THIRD_WEIGHT = 0.3 as const;
 const DAPPLE_NORMALISER = 1.9 as const;
+const REBUILD_DELAY_MS = 250 as const;
+const NO_SCALE = 1 as const;
+const WORLD_UP = new Vector3(0, 1, 0);
+const MIN_DIRECTION_LENGTH = 0.0001 as const;
+const TYPING_TAGS: readonly string[] = ['INPUT', 'TEXTAREA', 'SELECT'];
+const TELEMETRY_INTERVAL_SECONDS = 0.25 as const;
+
+interface MaterialEntry {
+  material: ShaderMaterial;
+  build: (settings: SceneSettings) => ShaderMaterial;
+}
+
+export interface UnderwaterEngineOptions {
+  isNavigable: boolean;
+  /** Report READY as soon as the water is drawn; the fish models keep loading in the background. */
+  isRevealedEarly?: boolean;
+}
 
 interface DriftParticles {
   points: Points;
@@ -190,6 +192,19 @@ interface DriftParticles {
 export class UnderwaterEngine {
   private readonly _canvas: HTMLCanvasElement;
   private readonly _callbacks: UnderwaterEngineCallbacks;
+  private readonly _materialEntries: MaterialEntry[] = [];
+  private readonly _isNavigable: boolean;
+  private readonly _isRevealedEarly: boolean;
+  private readonly _navKeys = new Set<string>();
+  private readonly _virtualKeys = new Set<string>();
+  private readonly _navOffset = new Vector3();
+  private readonly _navVelocity = new Vector3();
+  private readonly _navForward = new Vector3();
+  private readonly _navRight = new Vector3();
+  private readonly _navWish = new Vector3();
+  private _navYaw = 0;
+  private _navPitch = 0;
+  private _settings: SceneSettings;
   private readonly _clock = buildClock();
   private readonly _sunDirection = new Vector3(...SUN_DIRECTION).normalize();
   private readonly _lookTarget = new Vector3(...CAMERA_TARGET);
@@ -210,7 +225,17 @@ export class UnderwaterEngine {
   private _school: FishSchoolController | null = null;
   private _pellets: FoodPelletSimulation | null = null;
   private _sun: DirectionalLight | null = null;
-  private _sunBaseIntensity = SUN_INTENSITY;
+  private _rim: DirectionalLight | null = null;
+  private _fill: DirectionalLight | null = null;
+  private _hemi: HemisphereLight | null = null;
+  private _fog: FogExp2 | null = null;
+  private _shafts: Mesh[] = [];
+  private _sunBaseIntensity = 0;
+  private _rebuildTimer: number | null = null;
+  private _isGraphDirty = false;
+  private _isPostDirty = false;
+  private _isPostBusy = false;
+  private _telemetryClock = 0;
   private readonly _raycaster = new Raycaster();
   private readonly _ndc = new Vector2();
   private readonly _foodPlane = new Plane(new Vector3(0, 0, 1), -FOOD_PLANE_Z);
@@ -231,9 +256,17 @@ export class UnderwaterEngine {
   private _isVisible = true;
   private _isDestroyed = false;
 
-  constructor(canvas: HTMLCanvasElement, callbacks: UnderwaterEngineCallbacks) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    callbacks: UnderwaterEngineCallbacks,
+    settings: SceneSettings,
+    options: UnderwaterEngineOptions = { isNavigable: false },
+  ) {
+    this._isNavigable = options.isNavigable;
+    this._isRevealedEarly = options.isRevealedEarly ?? false;
     this._canvas = canvas;
     this._callbacks = callbacks;
+    this._settings = settings;
   }
 
   public async init(): Promise<void> {
@@ -243,22 +276,28 @@ export class UnderwaterEngine {
       await this._buildCompositor();
       this._bindObservers();
       this._startLoop();
+      if (this._isRevealedEarly) this._callbacks.onLoadStateChange(UnderwaterLoadState.READY);
       const templates = await this._buildFishTemplates();
       if (this._isDestroyed) return;
       this._setupFish(templates);
-      this._callbacks.onLoadStateChange(UnderwaterLoadState.READY);
+      if (!this._isRevealedEarly) this._callbacks.onLoadStateChange(UnderwaterLoadState.READY);
     } catch {
-      if (!this._isDestroyed) this._callbacks.onLoadStateChange(UnderwaterLoadState.ERROR);
+      if (!this._isDestroyed && !this._isRevealedEarly) this._callbacks.onLoadStateChange(UnderwaterLoadState.ERROR);
     }
   }
 
   public destroy(): void {
     this._isDestroyed = true;
+    if (this._rebuildTimer !== null) window.clearTimeout(this._rebuildTimer);
+    this._rebuildTimer = null;
     if (this._frameId !== null) cancelAnimationFrame(this._frameId);
     this._frameId = null;
     this._resizeObserver?.disconnect();
     this._visibilityObserver?.disconnect();
     window.removeEventListener('pointermove', this._onPointerMove);
+    window.removeEventListener('keydown', this._onKeyDown);
+    window.removeEventListener('keyup', this._onKeyUp);
+    window.removeEventListener('blur', this._onWindowBlur);
     this._canvas.removeEventListener('pointerdown', this._onPointerDown);
     this._bodies.forEach((body) => body.destroy());
     this._pellets?.destroy();
@@ -266,11 +305,147 @@ export class UnderwaterEngine {
     this._compositor?.dispose();
     this._disposables.forEach((entry) => entry.dispose());
     this._disposables.length = 0;
+    this._materialEntries.forEach((entry) => entry.material.dispose());
+    this._materialEntries.length = 0;
     this._renderer?.dispose();
     this._renderer = null;
     this._scene = null;
     this._camera = null;
     this._compositor = null;
+  }
+
+  /** Keys held down by the on-screen touch pads; they act exactly like the matching keyboard keys. */
+  public setVirtualKeys(codes: readonly string[]): void {
+    this._virtualKeys.clear();
+    codes.filter((code) => NAV_KEY_CODES.includes(code)).forEach((code) => this._virtualKeys.add(code));
+  }
+
+  /** Applies a settings snapshot: live values at once, shader and compositor rebuilds after a short pause. */
+  public applySettings(next: SceneSettings): void {
+    const previous = this._settings;
+    this._settings = next;
+    if (!this._scene) return;
+    this._applyLiveSettings();
+    if (hasSettingChanged(GRAPH_SETTING_KEYS, previous, next)) this._isGraphDirty = true;
+    if (hasSettingChanged(POST_SETTING_KEYS, previous, next)) this._isPostDirty = true;
+    if (this._isGraphDirty || this._isPostDirty) this._scheduleRebuild();
+  }
+
+  private _applyLiveSettings(): void {
+    const settings = this._settings;
+    const camera = this._camera;
+    if (this._renderer) this._renderer.toneMappingExposure = settings.exposure;
+    if (this._scene) this._scene.environmentIntensity = settings.environmentIntensity;
+    if (this._fog) {
+      this._fog.color.set(settings.fogColor);
+      this._fog.density = settings.fogDensity;
+    }
+    if (this._sun) {
+      this._sun.color.set(settings.sunColor);
+      this._sunBaseIntensity = settings.sunIntensity;
+    }
+    if (this._rim) {
+      this._rim.color.set(settings.rimColor);
+      this._rim.intensity = settings.rimIntensity;
+    }
+    if (this._fill) {
+      this._fill.color.set(settings.fillColor);
+      this._fill.intensity = settings.fillIntensity;
+    }
+    if (this._hemi) {
+      this._hemi.color.set(settings.hemiSkyColor);
+      this._hemi.intensity = settings.hemiIntensity;
+    }
+    if (camera) {
+      camera.fov = settings.cameraFov;
+      camera.updateProjectionMatrix();
+    }
+    this._shafts.forEach((shaft, index) => {
+      shaft.visible = index < settings.shaftCount;
+      shaft.scale.x = settings.shaftWidthScale;
+    });
+    this._applyParticleSettings();
+    this._applyTriforgeLight();
+  }
+
+  private _applyParticleSettings(): void {
+    const particles = this._particles;
+    if (!particles) return;
+    const material = particles.points.material as PointsMaterial; // built as a PointsMaterial in _buildParticles
+    material.size = this._settings.particleSize;
+    material.opacity = this._settings.particleOpacity;
+    particles.points.geometry.setDrawRange(0, this._settings.particleCount);
+  }
+
+  /** Triforge materials do their own lighting, so the sun and ambient sliders scale their light uniforms too. */
+  private _applyTriforgeLight(): void {
+    const sunScale = this._getScaleAgainstDefault(this._settings.sunIntensity, TRIFORGE_SUN_REFERENCE_INTENSITY);
+    const ambientScale = this._getScaleAgainstDefault(this._settings.hemiIntensity, TRIFORGE_AMBIENT_REFERENCE_INTENSITY);
+    this._materialEntries.forEach(({ material }) => {
+      material.uniforms.uSunColor?.value.set(...TRIFORGE_SUN_COLOR).multiplyScalar(sunScale);
+      material.uniforms.uAmbientColor?.value.set(...TRIFORGE_AMBIENT_COLOR).multiplyScalar(ambientScale);
+    });
+  }
+
+  private _getScaleAgainstDefault(value: number, reference: number): number {
+    return reference > 0 ? value / reference : NO_SCALE;
+  }
+
+  private _scheduleRebuild(): void {
+    if (this._rebuildTimer !== null) window.clearTimeout(this._rebuildTimer);
+    this._rebuildTimer = window.setTimeout(this._onRebuildTimer, REBUILD_DELAY_MS);
+  }
+
+  private readonly _onRebuildTimer = (): void => {
+    this._rebuildTimer = null;
+    if (this._isDestroyed) return;
+    if (this._isGraphDirty) {
+      this._isGraphDirty = false;
+      this._rebuildGraphMaterials();
+    }
+    if (this._isPostDirty) {
+      this._isPostDirty = false;
+      void this._rebuildCompositor();
+    }
+  };
+
+  /** Recompiles every Triforge material from the current settings and swaps it onto the meshes that use it. */
+  private _rebuildGraphMaterials(): void {
+    const scene = this._scene;
+    if (!scene) return;
+    this._materialEntries.forEach((entry) => {
+      const previous = entry.material;
+      const next = entry.build(this._settings);
+      scene.traverse((object) => {
+        if (object instanceof Mesh && object.material === previous) object.material = next;
+      });
+      previous.dispose();
+      entry.material = next;
+    });
+    this._applyTriforgeLight();
+  }
+
+  private async _rebuildCompositor(): Promise<void> {
+    if (this._isPostBusy) {
+      this._isPostDirty = true;
+      return;
+    }
+    this._isPostBusy = true;
+    try {
+      await this._buildCompositor();
+    } catch {
+      // the previous compositor stays in place when a rebuild fails
+    } finally {
+      this._isPostBusy = false;
+    }
+    if (this._isPostDirty && !this._isDestroyed) this._scheduleRebuild();
+  }
+
+  private _registerMaterial(build: (settings: SceneSettings) => ShaderMaterial): ShaderMaterial {
+    const material = build(this._settings);
+    this._materialEntries.push({ material, build });
+    this._applyTriforgeLight();
+    return material;
   }
 
   private _setDisposable<T extends { dispose: () => void }>(resource: T): T {
@@ -283,16 +458,17 @@ export class UnderwaterEngine {
     this._pixelRatio = Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO);
     renderer.setPixelRatio(this._pixelRatio);
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = TONE_MAPPING_EXPOSURE;
+    renderer.toneMappingExposure = this._settings.exposure;
     this._renderer = renderer;
   }
 
   private _buildScene(): void {
     const scene = new Scene();
-    scene.fog = new FogExp2(new Color(FOG_COLOR), FOG_DENSITY);
+    this._fog = new FogExp2(new Color(this._settings.fogColor), this._settings.fogDensity);
+    scene.fog = this._fog;
     this._scene = scene;
 
-    this._camera = new PerspectiveCamera(CAMERA_FOV, 1, CAMERA_NEAR, CAMERA_FAR);
+    this._camera = new PerspectiveCamera(this._settings.cameraFov, 1, CAMERA_NEAR, CAMERA_FAR);
     this._camera.position.copy(this._baseCameraPosition);
 
     this._buildLights(scene);
@@ -302,23 +478,27 @@ export class UnderwaterEngine {
   }
 
   private _buildLights(scene: Scene): void {
-    const sun = new DirectionalLight(new Color(SUN_COLOR), SUN_INTENSITY);
+    const settings = this._settings;
+    const sun = new DirectionalLight(new Color(settings.sunColor), settings.sunIntensity);
     sun.position.copy(this._sunDirection).multiplyScalar(SUN_DISTANCE);
     scene.add(sun, sun.target);
     this._sun = sun;
-    this._sunBaseIntensity = SUN_INTENSITY;
-    const rim = new DirectionalLight(new Color(RIM_COLOR), RIM_INTENSITY);
+    this._sunBaseIntensity = settings.sunIntensity;
+    const rim = new DirectionalLight(new Color(settings.rimColor), settings.rimIntensity);
     rim.position.set(...RIM_POSITION);
-    const fill = new DirectionalLight(new Color(FILL_COLOR), FILL_INTENSITY);
+    const fill = new DirectionalLight(new Color(settings.fillColor), settings.fillIntensity);
     fill.position.set(...FILL_POSITION);
-    scene.add(rim, fill);
-    scene.add(new HemisphereLight(new Color(HEMI_SKY_COLOR), new Color(HEMI_GROUND_COLOR), HEMI_INTENSITY));
+    const hemi = new HemisphereLight(new Color(settings.hemiSkyColor), new Color(HEMI_GROUND_COLOR), settings.hemiIntensity);
+    scene.add(rim, fill, hemi);
+    this._rim = rim;
+    this._fill = fill;
+    this._hemi = hemi;
   }
 
   private _buildBackdrop(scene: Scene): void {
     const renderer = this._renderer;
     if (!renderer) return;
-    const domeMaterial = this._setDisposable(buildDomeMaterial(this._clock));
+    const domeMaterial = this._registerMaterial((settings) => buildDomeMaterial(this._clock, settings));
     const domeGeometry = this._setDisposable(new SphereGeometry(DOME_RADIUS, DOME_WIDTH_SEGMENTS, DOME_HEIGHT_SEGMENTS));
     this._dome = new Mesh(domeGeometry, domeMaterial);
     this._dome.frustumCulled = false;
@@ -327,7 +507,7 @@ export class UnderwaterEngine {
 
     const surfaceGeometry = this._setDisposable(new PlaneGeometry(SURFACE_SIZE, SURFACE_SIZE));
     surfaceGeometry.rotateX(QUARTER_TURN);
-    const surface = new Mesh(surfaceGeometry, this._setDisposable(buildWaterSurfaceMaterial(this._clock)));
+    const surface = new Mesh(surfaceGeometry, this._registerMaterial((settings) => buildWaterSurfaceMaterial(this._clock, settings)));
     surface.position.y = SURFACE_Y;
     scene.add(surface);
 
@@ -337,7 +517,7 @@ export class UnderwaterEngine {
     const generator = new PMREMGenerator(renderer);
     const target = generator.fromScene(envScene, ENVIRONMENT_SIGMA, ENVIRONMENT_NEAR, ENVIRONMENT_FAR);
     scene.environment = target.texture;
-    scene.environmentIntensity = ENVIRONMENT_INTENSITY;
+    scene.environmentIntensity = this._settings.environmentIntensity;
     this._setDisposable(target);
     generator.dispose();
     envGeometry.dispose();
@@ -349,11 +529,19 @@ export class UnderwaterEngine {
 
     const seabed = new Mesh(
       this._setDisposable(buildSeabedGeometry(sampleHeight)),
-      this._setDisposable(buildSurfaceMaterial(SEABED_CONFIG, this._clock)),
+      this._registerMaterial((settings) => buildSurfaceMaterial(
+        { ...SEABED_CONFIG, bumpStrength: settings.seabedBump, causticGain: settings.seabedCausticGain },
+        this._clock,
+        settings,
+      )),
     );
     scene.add(seabed);
 
-    const rockMaterial = this._setDisposable(buildSurfaceMaterial(ROCK_CONFIG, this._clock));
+    const rockMaterial = this._registerMaterial((settings) => buildSurfaceMaterial(
+      { ...ROCK_CONFIG, bumpStrength: settings.rockBump, causticGain: settings.rockCausticGain },
+      this._clock,
+      settings,
+    ));
     const rocks = new Group();
     ROCK_PLACEMENTS.forEach((placement) => {
       const rock = new Mesh(this._setDisposable(buildRockGeometry(placement)), rockMaterial);
@@ -365,17 +553,20 @@ export class UnderwaterEngine {
     scene.add(rocks);
 
     const seagrass = new SeagrassAnimation(SEAGRASS_PATCHES, sampleHeight);
-    const blades = new Mesh(this._setDisposable(seagrass.init()), this._setDisposable(buildFoliageMaterial(this._clock)));
+    const blades = new Mesh(
+      this._setDisposable(seagrass.init(this._settings.seagrassSwaySpeed, this._settings.seagrassSwayAmplitude)),
+      this._registerMaterial((settings) => buildFoliageMaterial(this._clock, settings)),
+    );
     blades.frustumCulled = false;
     scene.add(blades);
     this._seagrass = seagrass;
   }
 
   private _buildAtmosphere(scene: Scene): void {
-    const shaftMaterial = this._setDisposable(buildLightShaftMaterial(this._clock));
+    const shaftMaterial = this._registerMaterial((settings) => buildLightShaftMaterial(this._clock, settings));
     const random = buildSeededRandom(SHAFT_YAW_SEED);
     const upright = new Vector3(0, 1, 0);
-    for (let index = 0; index < SHAFT_COUNT; index += 1) {
+    for (let index = 0; index < SHAFT_MAX_COUNT; index += 1) {
       const width = SHAFT_WIDTH_MIN + random() * (SHAFT_WIDTH_MAX - SHAFT_WIDTH_MIN);
       const geometry = this._setDisposable(new PlaneGeometry(width, SHAFT_LENGTH));
       const shaft = new Mesh(geometry, shaftMaterial);
@@ -385,6 +576,7 @@ export class UnderwaterEngine {
       shaft.rotateOnAxis(upright, (random() - HALF) * SHAFT_YAW_JITTER);
       shaft.renderOrder = SHAFT_PRIORITY;
       scene.add(shaft);
+      this._shafts.push(shaft);
     }
     this._buildParticles(scene);
   }
@@ -400,10 +592,10 @@ export class UnderwaterEngine {
 
   private _buildParticles(scene: Scene): void {
     const random = buildSeededRandom(SCENERY_SEED);
-    const positions = new Float32Array(PARTICLE_COUNT * 3);
-    const speeds = new Float32Array(PARTICLE_COUNT);
-    const phases = new Float32Array(PARTICLE_COUNT);
-    for (let index = 0; index < PARTICLE_COUNT; index += 1) {
+    const positions = new Float32Array(PARTICLE_MAX_COUNT * 3);
+    const speeds = new Float32Array(PARTICLE_MAX_COUNT);
+    const phases = new Float32Array(PARTICLE_MAX_COUNT);
+    for (let index = 0; index < PARTICLE_MAX_COUNT; index += 1) {
       positions[index * 3] = (random() - HALF) * PARTICLE_EXTENT_X * 2;
       positions[index * 3 + 1] = PARTICLE_FLOOR + random() * PARTICLE_EXTENT_Y;
       positions[index * 3 + 2] = (random() - HALF) * PARTICLE_EXTENT_Z * 2;
@@ -414,11 +606,11 @@ export class UnderwaterEngine {
     geometry.setAttribute('position', new BufferAttribute(positions, 3));
     const material = this._setDisposable(new PointsMaterial({
       color: new Color(PARTICLE_COLOR),
-      size: PARTICLE_SIZE,
+      size: this._settings.particleSize,
       sizeAttenuation: true,
       map: this._setDisposable(this._buildParticleSprite()),
       transparent: true,
-      opacity: PARTICLE_OPACITY,
+      opacity: this._settings.particleOpacity,
       depthWrite: false,
       blending: AdditiveBlending,
     }));
@@ -426,6 +618,7 @@ export class UnderwaterEngine {
     points.frustumCulled = false;
     scene.add(points);
     this._particles = { points, speeds, phases };
+    this._applyParticleSettings();
   }
 
   private _buildParticleSprite(): Texture {
@@ -451,23 +644,30 @@ export class UnderwaterEngine {
     const camera = this._camera;
     if (!renderer || !scene || !camera) return;
 
+    const settings = this._settings;
+    const previous = this._compositor;
     const compositor = new CompositorOutput({ renderer, scene, camera });
     compositor
-      .add(new Bloom({ threshold: BLOOM_THRESHOLD, strength: BLOOM_STRENGTH, radius: BLOOM_RADIUS }))
+      .add(new Bloom({ threshold: settings.bloomThreshold, strength: settings.bloomStrength, radius: settings.bloomRadius }))
       .add(new ColorBalance({
-        liftR: GRADE_LIFT_R,
-        liftG: GRADE_LIFT_G,
-        liftB: GRADE_LIFT_B,
-        gainR: GRADE_GAIN_R,
-        gainG: GRADE_GAIN_G,
-        gainB: GRADE_GAIN_B,
+        liftR: settings.gradeLiftR,
+        liftG: settings.gradeLiftG,
+        liftB: settings.gradeLiftB,
+        gainR: settings.gradeGainR,
+        gainG: settings.gradeGainG,
+        gainB: settings.gradeGainB,
       }))
-      .add(new HueSaturation({ hue: HUE_NEUTRAL, saturation: GRADE_SATURATION }))
-      .add(new Vignette({ darkness: VIGNETTE_DARKNESS, offset: VIGNETTE_OFFSET }))
-      .add(new FilmGrain({ intensity: GRAIN_INTENSITY }));
+      .add(new HueSaturation({ hue: HUE_NEUTRAL, saturation: settings.gradeSaturation }))
+      .add(new Vignette({ darkness: settings.vignetteDarkness, offset: settings.vignetteOffset }))
+      .add(new FilmGrain({ intensity: settings.grainIntensity }));
     await compositor.compile();
+    if (this._isDestroyed) {
+      compositor.dispose();
+      return;
+    }
     this._setMultisampling(compositor);
     this._compositor = compositor;
+    previous?.dispose();
     this._updateSize();
   }
 
@@ -492,6 +692,10 @@ export class UnderwaterEngine {
     this._visibilityObserver.observe(this._canvas);
     window.addEventListener('pointermove', this._onPointerMove);
     this._canvas.addEventListener('pointerdown', this._onPointerDown);
+    if (!this._isNavigable) return;
+    window.addEventListener('keydown', this._onKeyDown);
+    window.addEventListener('keyup', this._onKeyUp);
+    window.addEventListener('blur', this._onWindowBlur);
   }
 
   private _startLoop(): void {
@@ -520,7 +724,7 @@ export class UnderwaterEngine {
     const delays = this._buildShuffled(ENTRY_DELAYS, random);
     const shadowGeometry = this._setDisposable(new PlaneGeometry(1, 1));
     shadowGeometry.rotateX(-QUARTER_TURN);
-    const shadowMaterial = this._setDisposable(buildFishShadowMaterial(this._clock));
+    const shadowMaterial = this._registerMaterial((settings) => buildFishShadowMaterial(this._clock, settings));
 
     templates.forEach((template) => {
       for (let copy = 0; copy < template.profile.count; copy += 1) {
@@ -627,34 +831,93 @@ export class UnderwaterEngine {
   private _updateCamera(deltaSeconds: number): void {
     const camera = this._camera;
     if (!camera) return;
-    const follow = Math.min(1, deltaSeconds * CAMERA_PARALLAX_DAMPING);
+    this._updateNavigation(camera, deltaSeconds);
+    const settings = this._settings;
+    const follow = Math.min(1, deltaSeconds * settings.cameraParallaxDamping);
     this._pointer.smoothX += (this._pointer.x - this._pointer.smoothX) * follow;
     this._pointer.smoothY += (this._pointer.y - this._pointer.smoothY) * follow;
 
-    const driftAngle = this._elapsed * CAMERA_DRIFT_SPEED * TWO_PI;
-    const bob = Math.sin(this._elapsed * CAMERA_BOB_SPEED) * CAMERA_BOB_AMPLITUDE;
+    const driftAngle = this._elapsed * settings.cameraDriftSpeed * TWO_PI;
+    const bob = Math.sin(this._elapsed * CAMERA_BOB_SPEED) * settings.cameraBobAmplitude;
     camera.position.set(
-      this._baseCameraPosition.x + Math.sin(driftAngle) * CAMERA_DRIFT_RADIUS + this._pointer.smoothX * CAMERA_PARALLAX_X,
-      this._baseCameraPosition.y + bob + this._pointer.smoothY * CAMERA_PARALLAX_Y,
+      this._baseCameraPosition.x + Math.sin(driftAngle) * settings.cameraDriftRadius + this._pointer.smoothX * settings.cameraParallaxX,
+      this._baseCameraPosition.y + bob + this._pointer.smoothY * settings.cameraParallaxY,
       this._baseCameraPosition.z * this._pullback
-        + Math.cos(driftAngle * CAMERA_DRIFT_DEPTH_SPEED) * CAMERA_DRIFT_RADIUS * CAMERA_DRIFT_DEPTH_FACTOR,
+        + Math.cos(driftAngle * CAMERA_DRIFT_DEPTH_SPEED) * settings.cameraDriftRadius * CAMERA_DRIFT_DEPTH_FACTOR,
     );
     this._lookScratch.copy(this._lookTarget);
     this._lookScratch.x += this._pointer.smoothX * CAMERA_LOOK_X;
     this._lookScratch.y += this._pointer.smoothY * CAMERA_LOOK_Y;
     camera.lookAt(this._lookScratch);
+    if (this._isNavigable) this._applyNavigation(camera);
     this._dome?.position.copy(camera.position);
   }
+
+  /** WASD accelerates the camera along its heading; arrow keys turn and tilt the view. */
+  private _updateNavigation(camera: PerspectiveCamera, deltaSeconds: number): void {
+    if (!this._isNavigable) return;
+    const keys = this._navKeys;
+    const isDown = (code: string): boolean => keys.has(code) || this._virtualKeys.has(code);
+    const axis = (positive: string, negative: string): number => Number(isDown(positive)) - Number(isDown(negative));
+    this._navYaw += axis('ArrowLeft', 'ArrowRight') * NAV_TURN_SPEED * deltaSeconds;
+    this._navPitch = MathUtils.clamp(this._navPitch + axis('ArrowUp', 'ArrowDown') * NAV_TURN_SPEED * deltaSeconds, -NAV_PITCH_LIMIT, NAV_PITCH_LIMIT);
+
+    camera.getWorldDirection(this._navForward);
+    this._navForward.y = 0;
+    if (this._navForward.lengthSq() < MIN_DIRECTION_LENGTH) return;
+    this._navForward.normalize();
+    this._navRight.crossVectors(this._navForward, WORLD_UP);
+    this._navWish.set(0, 0, 0)
+      .addScaledVector(this._navForward, axis('KeyW', 'KeyS'))
+      .addScaledVector(this._navRight, axis('KeyD', 'KeyA'));
+    if (this._navWish.lengthSq() > 0) this._navWish.normalize().multiplyScalar(NAV_SPEED);
+    this._navVelocity.lerp(this._navWish, Math.min(1, deltaSeconds * NAV_SMOOTHING));
+    this._navOffset.addScaledVector(this._navVelocity, deltaSeconds);
+  }
+
+  /** Adds the navigation offset and rotation on top of the automatic camera, keeping it inside the tank. */
+  private _applyNavigation(camera: PerspectiveCamera): void {
+    const position = camera.position;
+    position.add(this._navOffset);
+    const x = MathUtils.clamp(position.x, -NAV_BOUNDS_X, NAV_BOUNDS_X);
+    const z = MathUtils.clamp(position.z, NAV_MIN_Z, NAV_MAX_Z);
+    const floor = (this._sampleHeight?.(x, z) ?? 0) + NAV_GROUND_CLEARANCE;
+    const y = MathUtils.clamp(position.y, floor, SURFACE_Y - NAV_SURFACE_CLEARANCE);
+    this._navOffset.add(this._lookScratch.set(x - position.x, y - position.y, z - position.z));
+    position.set(x, y, z);
+    camera.rotateOnWorldAxis(WORLD_UP, this._navYaw);
+    camera.rotateX(this._navPitch);
+  }
+
+  private _isTypingTarget(target: EventTarget | null): boolean {
+    return target instanceof HTMLElement && (TYPING_TAGS.includes(target.tagName) || target.isContentEditable);
+  }
+
+  private readonly _onKeyDown = (event: KeyboardEvent): void => {
+    if (!NAV_KEY_CODES.includes(event.code) || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (this._isTypingTarget(event.target)) return;
+    this._navKeys.add(event.code);
+    if (event.code.startsWith('Arrow')) event.preventDefault();
+  };
+
+  private readonly _onKeyUp = (event: KeyboardEvent): void => {
+    this._navKeys.delete(event.code);
+  };
+
+  private readonly _onWindowBlur = (): void => {
+    this._navKeys.clear();
+  };
 
   private _updateParticles(deltaSeconds: number): void {
     const particles = this._particles;
     if (!particles) return;
     const positions = particles.points.geometry.attributes.position as BufferAttribute; // set as a BufferAttribute in _buildParticles
     const array = positions.array as Float32Array; // built as a Float32Array in _buildParticles
-    for (let index = 0; index < PARTICLE_COUNT; index += 1) {
+    const driftSpeed = this._settings.particleDriftSpeed;
+    for (let index = 0; index < this._settings.particleCount; index += 1) {
       const wobble = Math.sin(this._elapsed * PARTICLE_WOBBLE_SPEED + particles.phases[index]) * PARTICLE_WOBBLE;
       array[index * 3] += wobble * deltaSeconds;
-      array[index * 3 + 1] -= particles.speeds[index] * PARTICLE_DRIFT_SPEED * deltaSeconds;
+      array[index * 3 + 1] -= particles.speeds[index] * driftSpeed * deltaSeconds;
       array[index * 3 + 2] += Math.cos(particles.phases[index] + this._elapsed * PARTICLE_WOBBLE_SPEED) * PARTICLE_WOBBLE * deltaSeconds;
       if (array[index * 3 + 1] < PARTICLE_FLOOR) array[index * 3 + 1] += PARTICLE_EXTENT_Y;
     }
@@ -676,24 +939,45 @@ export class UnderwaterEngine {
       const height = Math.max(0, position.y - sampleHeight(position.x, position.z));
       const shiftX = position.x - (this._sunDirection.x / this._sunDirection.y) * height;
       const shiftZ = position.z - (this._sunDirection.z / this._sunDirection.y) * height;
-      const spread = 1 + FISH_SHADOW_SPREAD * height;
+      const spread = 1 + this._settings.fishShadowSpread * height;
       shadow.position.set(shiftX, sampleHeight(shiftX, shiftZ) + FISH_SHADOW_LIFT, shiftZ);
       shadow.rotation.y = agent.heading;
-      shadow.scale.set(length * SHADOW_WIDTH_RATIO * spread, 1, length * FISH_SHADOW_BASE_SIZE * spread);
+      shadow.scale.set(length * SHADOW_WIDTH_RATIO * spread, 1, length * this._settings.fishShadowSize * spread);
     });
+  }
+
+  /** A few times a second, hands the UI a plain snapshot of every fish's state. */
+  private _updateTelemetry(deltaSeconds: number): void {
+    this._telemetryClock += deltaSeconds;
+    if (this._telemetryClock < TELEMETRY_INTERVAL_SECONDS || this._agents.length === 0) return;
+    this._telemetryClock = 0;
+    this._callbacks.onFishTelemetry(this._agents.map((agent): FishTelemetry => ({
+      id: agent.id,
+      label: agent.profile.label,
+      temperament: agent.temperament.label,
+      mode: agent.mode,
+      isEntering: agent.entryDelay > 0,
+      isResting: agent.dwell > 0,
+      isEating: agent.gulp > 0,
+      speed: agent.velocity.length(),
+      depth: agent.position.y,
+      appetite: MathUtils.clamp(1 - agent.satiety, 0, 1),
+      panic: agent.panic,
+      waypointDistance: agent.position.distanceTo(agent.waypoint),
+    })));
   }
 
   /** Sunlight refracted through moving waves reaches the fish as slow, soft dappling. */
   private _updateLighting(): void {
     const sun = this._sun;
     if (!sun) return;
-    const t = this._elapsed * DAPPLE_SPEED;
+    const t = this._elapsed * this._settings.dappleSpeed;
     const flicker = (
       Math.sin(t)
       + Math.sin(t * DAPPLE_SECOND_RATE + 1.3) * DAPPLE_SECOND_WEIGHT
       + Math.sin(t * DAPPLE_THIRD_RATE + 2.1) * DAPPLE_THIRD_WEIGHT
     ) / DAPPLE_NORMALISER;
-    sun.intensity = this._sunBaseIntensity * (1 + flicker * DAPPLE_AMOUNT);
+    sun.intensity = this._sunBaseIntensity * (1 + flicker * this._settings.dappleAmount);
   }
 
   private _getCursorThreat(): CursorThreat | null {
@@ -718,10 +1002,11 @@ export class UnderwaterEngine {
     this._clock.time.value = this._elapsed;
 
     this._updateCamera(deltaSeconds);
-    this._seagrass?.update(this._elapsed);
+    this._seagrass?.update(this._elapsed, this._settings.seagrassSwaySpeed, this._settings.seagrassSwayAmplitude);
     this._updateParticles(deltaSeconds);
     this._updateFish(deltaSeconds);
     this._updateLighting();
+    this._updateTelemetry(deltaSeconds);
     this._compositor?.render();
     this._updateQuality(deltaSeconds);
   };
@@ -742,7 +1027,7 @@ export class UnderwaterEngine {
     const rect = this._canvas.getBoundingClientRect();
     const isInside = event.clientX >= rect.left && event.clientX <= rect.right
       && event.clientY >= rect.top && event.clientY <= rect.bottom;
-    this._cursor.isActive = isInside && event.pointerType !== 'touch';
+    this._cursor.isActive = isInside && event.target === this._canvas && event.pointerType !== 'touch';
     this._cursor.x = ((event.clientX - rect.left) / rect.width) * NDC_SPAN - 1;
     this._cursor.y = -(((event.clientY - rect.top) / rect.height) * NDC_SPAN - 1);
   };

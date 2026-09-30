@@ -17,19 +17,9 @@ import {
 import type { MaterialOutput, MathMode, OutputSocket } from '@triforge/shader-core';
 import { ShaderMaterial, Vector3 } from 'three';
 
+import { SceneSettings } from '../../types/underwater';
 import {
-  ABSORPTION_BLUE,
-  ABSORPTION_GREEN,
-  ABSORPTION_RED,
-  CAUSTIC_COLOR,
-  CAUSTIC_DEPTH_FALLOFF,
-  CAUSTIC_SCALE_A,
-  CAUSTIC_SCALE_B,
-  CAUSTIC_SPEED_A,
-  CAUSTIC_SPEED_B,
-  CAUSTIC_STRENGTH,
   DISPLAY_GAMMA,
-  FOG_COLOR,
   SUN_DIRECTION,
   SURFACE_Y,
   TRIFORGE_AMBIENT_COLOR,
@@ -108,23 +98,23 @@ export function buildDisplayToLinear(color: OutputSocket): OutputSocket {
  * Beer-Lambert absorption plus in-scattering: red dies first, blue survives,
  * and distant surfaces dissolve into the fog colour.
  */
-export function buildWaterColumn(surface: OutputSocket): OutputSocket {
+export function buildWaterColumn(surface: OutputSocket, settings: SceneSettings): OutputSocket {
   const distance = new CameraData().output('ViewDistance');
   const channel = (absorption: number): OutputSocket => buildMath('POWER', Math.exp(-absorption), distance);
   const transmittance = new CombineRGB({
-    r: channel(ABSORPTION_RED),
-    g: channel(ABSORPTION_GREEN),
-    b: channel(ABSORPTION_BLUE),
+    r: channel(settings.absorptionRed),
+    g: channel(settings.absorptionGreen),
+    b: channel(settings.absorptionBlue),
   }).output('Color');
 
   const attenuated = buildMix('MULTIPLY', NEUTRAL_FAC, surface, transmittance);
   const lost = buildMix('SUBTRACT', NEUTRAL_FAC, WHITE, transmittance);
-  const scattered = buildMix('MULTIPLY', NEUTRAL_FAC, lost, FOG_COLOR);
+  const scattered = buildMix('MULTIPLY', NEUTRAL_FAC, lost, settings.fogColor);
   return buildMix('ADD', NEUTRAL_FAC, attenuated, scattered);
 }
 
 /** Sunlight focused by surface waves: two ridged animated-noise layers multiplied together. */
-export function buildCausticPattern(position: OutputSocket): OutputSocket {
+export function buildCausticPattern(position: OutputSocket, settings: SceneSettings): OutputSocket {
   const ridgeLayer = (scale: number, speed: number): OutputSocket => {
     const noise = new AnimatedNoiseTexture({
       vector: position,
@@ -137,21 +127,25 @@ export function buildCausticPattern(position: OutputSocket): OutputSocket {
     const ridge = buildMath('SUBTRACT', 1, buildMath('MULTIPLY', offCentre, RIDGE_GAIN));
     return buildMath('POWER', ridge, RIDGE_POWER);
   };
-  return buildMath('MULTIPLY', ridgeLayer(CAUSTIC_SCALE_A, CAUSTIC_SPEED_A), ridgeLayer(CAUSTIC_SCALE_B, CAUSTIC_SPEED_B));
+  return buildMath(
+    'MULTIPLY',
+    ridgeLayer(settings.causticScaleA, settings.causticSpeedA),
+    ridgeLayer(settings.causticScaleB, settings.causticSpeedB),
+  );
 }
 
 /** Caustic light as a colour: fades with depth below the surface and on surfaces facing away from the sun. */
-export function buildCausticLight(geometry: Geometry): OutputSocket {
+export function buildCausticLight(geometry: Geometry, settings: SceneSettings): OutputSocket {
   const position = geometry.output('Position');
   const facingUp = buildRange(buildChannel(geometry.output('Normal'), 'G'), MOSTLY_UPRIGHT_MIN, MOSTLY_UPRIGHT_MAX);
   const depthBelowSurface = buildMath('SUBTRACT', SURFACE_Y, buildChannel(position, 'G'));
-  const depthFade = buildMath('POWER', Math.exp(-CAUSTIC_DEPTH_FALLOFF), depthBelowSurface);
+  const depthFade = buildMath('POWER', Math.exp(-settings.causticDepthFalloff), depthBelowSurface);
   const intensity = buildMath(
     'MULTIPLY',
-    buildMath('MULTIPLY', buildCausticPattern(position), facingUp),
-    buildMath('MULTIPLY', depthFade, CAUSTIC_STRENGTH),
+    buildMath('MULTIPLY', buildCausticPattern(position, settings), facingUp),
+    buildMath('MULTIPLY', depthFade, settings.causticStrength),
   );
-  return buildMix('MULTIPLY', NEUTRAL_FAC, CAUSTIC_COLOR, buildGreyColor(intensity));
+  return buildMix('MULTIPLY', NEUTRAL_FAC, settings.causticColor, buildGreyColor(intensity));
 }
 
 /**

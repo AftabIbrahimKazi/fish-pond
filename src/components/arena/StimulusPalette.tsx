@@ -64,7 +64,7 @@ export const StimulusPalette: React.FC<StimulusPaletteProps> = ({ armedKind, onS
   return (
     <nav
       aria-label="Stimulus palette"
-      className={`${styles['fp-arena-panel']} ${styles['fp-arena-dock']} d-flex flex-column gap-[var(--fp-space-default)] p-[var(--fp-space-default)]`}
+      className={`${styles['fp-arena-panel']} d-flex flex-column gap-[var(--fp-space-default)] p-[var(--fp-space-default)]`}
       data-panel="palette"
     >
       {PALETTE_GROUPS.map((group) => {

@@ -19,6 +19,7 @@ import {
 import type { OutputSocket } from '@triforge/shader-core';
 import { AdditiveBlending, BackSide, DoubleSide, ShaderMaterial } from 'three';
 
+import { SceneSettings } from '../../types/underwater';
 import {
   TriforgeClock,
   buildChannel,
@@ -30,12 +31,7 @@ import {
   buildWaterColumn,
   finaliseMaterial,
 } from './triforge-graph';
-import {
-  FOG_COLOR,
-  FISH_SHADOW_OPACITY,
-  SHAFT_INTENSITY,
-  SUN_DIRECTION,
-} from './underwater-constants';
+import { SUN_DIRECTION } from './underwater-constants';
 
 const NEUTRAL_FAC = 1 as const;
 const HALF = 0.5 as const;
@@ -44,12 +40,14 @@ const DOUBLE = 2 as const;
 /* Dome */
 const DOME_ELEVATION_MIN = -0.5 as const;
 const DOME_ELEVATION_MAX = 0.74 as const;
-const DOME_STOPS: string[] = ['#02141c', '#05343f', FOG_COLOR, '#2a9bad', '#8adbe4'];
+const DOME_STOP_DEEP = '#02141c' as const;
+const DOME_STOP_LOW = '#05343f' as const;
+const DOME_STOP_UPPER = '#2a9bad' as const;
+const DOME_STOP_BRIGHT = '#8adbe4' as const;
 const SUN_GLOW_COLOR = '#9fe8ef' as const;
 const SUN_GLOW_MIN = 0.55 as const;
 const SUN_GLOW_MAX = 1 as const;
 const SUN_GLOW_POWER = 2.4 as const;
-const SUN_GLOW_GAIN = 0.55 as const;
 
 /* Water surface */
 const SWELL_SCALE = 210 as const;
@@ -65,7 +63,6 @@ const WINDOW_BASE_BRIGHTNESS = 0.7 as const;
 const WINDOW_SWELL_BRIGHTNESS = 1.1 as const;
 const MIRROR_DARK = '#0d4457' as const;
 const MIRROR_LIGHT = '#1f7a8c' as const;
-const SURFACE_EMISSION = 1.15 as const;
 const NOISE_LOW = 0.42 as const;
 const NOISE_HIGH = 0.58 as const;
 
@@ -92,14 +89,15 @@ function buildEmissive(color: OutputSocket, strength: number = NEUTRAL_FAC): Mat
 }
 
 /** Vertical gradient from abyss to the bright surface, matching the fog colour at the horizon. */
-export function buildDomeMaterial(clock: TriforgeClock): ShaderMaterial {
+export function buildDomeMaterial(clock: TriforgeClock, settings: SceneSettings): ShaderMaterial {
   const incoming = new Geometry().output('Incoming');
   const elevation = buildRange(buildChannel(incoming, 'G'), DOME_ELEVATION_MIN, DOME_ELEVATION_MAX);
-  const gradient = new ColorRamp({ fac: elevation, stops: DOME_STOPS }).output('Color');
+  const stops = [DOME_STOP_DEEP, DOME_STOP_LOW, settings.fogColor, DOME_STOP_UPPER, DOME_STOP_BRIGHT];
+  const gradient = new ColorRamp({ fac: elevation, stops }).output('Color');
 
   const towardSun = new VectorMath({ mode: 'DOT_PRODUCT', vector: incoming, vectorB: [...SUN_DIRECTION] }).output('Value');
   const glowMask = buildMath('POWER', buildRange(towardSun, SUN_GLOW_MIN, SUN_GLOW_MAX), SUN_GLOW_POWER);
-  const glow = buildMix('MULTIPLY', NEUTRAL_FAC, SUN_GLOW_COLOR, buildGreyColor(buildMath('MULTIPLY', glowMask, SUN_GLOW_GAIN)));
+  const glow = buildMix('MULTIPLY', NEUTRAL_FAC, SUN_GLOW_COLOR, buildGreyColor(buildMath('MULTIPLY', glowMask, settings.domeGlowGain)));
 
   const material = finaliseMaterial(buildEmissive(buildDisplayToLinear(buildMix('ADD', NEUTRAL_FAC, gradient, glow))), clock);
   material.side = BackSide;
@@ -108,7 +106,7 @@ export function buildDomeMaterial(clock: TriforgeClock): ShaderMaterial {
 }
 
 /** The mirror ceiling: a bright Snell's window straight up, total internal reflection beyond it. */
-export function buildWaterSurfaceMaterial(clock: TriforgeClock): ShaderMaterial {
+export function buildWaterSurfaceMaterial(clock: TriforgeClock, settings: SceneSettings): ShaderMaterial {
   const geometry = new Geometry();
   const position = geometry.output('Position');
   const swell = new AnimatedNoiseTexture({ vector: position, scale: SWELL_SCALE, speed: SWELL_SPEED, detail: 1 }).output('Fac');
@@ -126,13 +124,13 @@ export function buildWaterSurfaceMaterial(clock: TriforgeClock): ShaderMaterial 
   const mirror = buildMix('MIX', buildRange(swell, NOISE_LOW, NOISE_HIGH), MIRROR_DARK, MIRROR_LIGHT);
   const surface = buildMix('MIX', windowMask, mirror, brightWindow);
 
-  const material = finaliseMaterial(buildEmissive(buildDisplayToLinear(buildWaterColumn(surface)), SURFACE_EMISSION), clock);
+  const material = finaliseMaterial(buildEmissive(buildDisplayToLinear(buildWaterColumn(surface, settings)), settings.surfaceBrightness), clock);
   material.side = DoubleSide;
   return material;
 }
 
 /** God-ray shaft: streaked noise along its width, brightest at the surface end, additive. */
-export function buildLightShaftMaterial(clock: TriforgeClock): ShaderMaterial {
+export function buildLightShaftMaterial(clock: TriforgeClock, settings: SceneSettings): ShaderMaterial {
   const position = new Geometry().output('Position');
   const uv = new TextureCoordinate().output('UV');
   const across = buildChannel(uv, 'R');
@@ -150,7 +148,7 @@ export function buildLightShaftMaterial(clock: TriforgeClock): ShaderMaterial {
   const alpha = buildMath(
     'MULTIPLY',
     buildMath('MULTIPLY', buildMath('MULTIPLY', edge, lengthFade), buildMath('MULTIPLY', streakGain, nearFade)),
-    SHAFT_INTENSITY,
+    settings.shaftIntensity,
   );
   const glow = new Emission({ color: buildDisplayToLinear(new RGB(SHAFT_COLOR).output('Color')) }).output('BSDF');
   const surface = new MixShader({ fac: alpha, shader1: new TransparentBSDF().output('BSDF'), shader2: glow }).output('BSDF');
@@ -163,7 +161,7 @@ export function buildLightShaftMaterial(clock: TriforgeClock): ShaderMaterial {
 }
 
 /** Soft radial contact shadow: black, alpha falls off from the centre of a unit quad. */
-export function buildFishShadowMaterial(clock: TriforgeClock): ShaderMaterial {
+export function buildFishShadowMaterial(clock: TriforgeClock, settings: SceneSettings): ShaderMaterial {
   const uv = new TextureCoordinate().output('UV');
   const offsetU = buildMath('SUBTRACT', buildChannel(uv, 'R'), HALF);
   const offsetV = buildMath('SUBTRACT', buildChannel(uv, 'G'), HALF);
@@ -173,7 +171,7 @@ export function buildFishShadowMaterial(clock: TriforgeClock): ShaderMaterial {
     DOUBLE,
   );
   const density = buildMath('SUBTRACT', NEUTRAL_FAC, buildRange(radius, 0, NEUTRAL_FAC));
-  const alpha = buildMath('MULTIPLY', density, FISH_SHADOW_OPACITY);
+  const alpha = buildMath('MULTIPLY', density, settings.fishShadowOpacity);
   const dark = new Emission({ color: new RGB('#010b10').output('Color') }).output('BSDF');
   const surface = new MixShader({ fac: alpha, shader1: new TransparentBSDF().output('BSDF'), shader2: dark }).output('BSDF');
 

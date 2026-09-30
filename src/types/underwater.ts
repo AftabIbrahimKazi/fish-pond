@@ -82,6 +82,127 @@ export interface CursorThreat {
   direction: Vector3;
 }
 
+/** A read-only snapshot of one fish for the on-screen behaviour readout. */
+export interface FishTelemetry {
+  id: number;
+  label: string;
+  temperament: string;
+  mode: FishMode;
+  isEntering: boolean;
+  isResting: boolean;
+  isEating: boolean;
+  speed: number;
+  depth: number;
+  appetite: number;
+  panic: number;
+  waypointDistance: number;
+}
+
 export interface UnderwaterEngineCallbacks {
   onLoadStateChange: (state: UnderwaterLoadState) => void;
+  onFishTelemetry: (fish: FishTelemetry[]) => void;
+}
+
+/** Every graphics value the settings sidebar can tune. Defaults live in `underwater-settings.ts`. */
+export interface SceneSettings {
+  fogColor: string;
+  fogDensity: number;
+  absorptionRed: number;
+  absorptionGreen: number;
+  absorptionBlue: number;
+  exposure: number;
+  sunIntensity: number;
+  sunColor: string;
+  hemiIntensity: number;
+  hemiSkyColor: string;
+  environmentIntensity: number;
+  rimIntensity: number;
+  rimColor: string;
+  fillIntensity: number;
+  fillColor: string;
+  dappleAmount: number;
+  dappleSpeed: number;
+  causticStrength: number;
+  causticScaleA: number;
+  causticScaleB: number;
+  causticSpeedA: number;
+  causticSpeedB: number;
+  causticDepthFalloff: number;
+  causticColor: string;
+  shaftIntensity: number;
+  shaftCount: number;
+  shaftWidthScale: number;
+  particleCount: number;
+  particleSize: number;
+  particleOpacity: number;
+  particleDriftSpeed: number;
+  cameraFov: number;
+  cameraDriftRadius: number;
+  cameraDriftSpeed: number;
+  cameraBobAmplitude: number;
+  cameraParallaxX: number;
+  cameraParallaxY: number;
+  cameraParallaxDamping: number;
+  bloomThreshold: number;
+  bloomStrength: number;
+  bloomRadius: number;
+  vignetteDarkness: number;
+  vignetteOffset: number;
+  grainIntensity: number;
+  gradeLiftR: number;
+  gradeLiftG: number;
+  gradeLiftB: number;
+  gradeGainR: number;
+  gradeGainG: number;
+  gradeGainB: number;
+  gradeSaturation: number;
+  seagrassSwaySpeed: number;
+  seagrassSwayAmplitude: number;
+  fishShadowOpacity: number;
+  fishShadowSize: number;
+  fishShadowSpread: number;
+  surfaceBrightness: number;
+  domeGlowGain: number;
+  seabedBump: number;
+  seabedCausticGain: number;
+  rockBump: number;
+  rockCausticGain: number;
+}
+
+export type SettingKey = keyof SceneSettings;
+
+export enum SettingGroup {
+  WATER = 'WATER',
+  LIGHT = 'LIGHT',
+  CAUSTICS = 'CAUSTICS',
+  SHAFTS = 'SHAFTS',
+  SNOW = 'SNOW',
+  CAMERA = 'CAMERA',
+  POST = 'POST',
+  PLANTS = 'PLANTS',
+  SHADOW = 'SHADOW',
+  SURFACES = 'SURFACES',
+}
+
+export enum SettingKind {
+  NUMBER = 'NUMBER',
+  COLOR = 'COLOR',
+}
+
+/** How a change reaches the screen: straight away, by rebuilding Triforge materials, or by rebuilding the compositor. */
+export enum SettingApply {
+  LIVE = 'LIVE',
+  GRAPH = 'GRAPH',
+  POST = 'POST',
+}
+
+export interface SettingDefinition {
+  key: SettingKey;
+  group: SettingGroup;
+  kind: SettingKind;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  apply: SettingApply;
 }

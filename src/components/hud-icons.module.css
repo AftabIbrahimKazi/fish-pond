@@ -1,0 +1,9 @@
+/* ================================
+   TOP HALF — Rules
+   ================================ */
+
+.fp-icon {
+  flex-shrink: 0;
+  height: var(--fp-glass-icon);
+  width: var(--fp-glass-icon);
+}

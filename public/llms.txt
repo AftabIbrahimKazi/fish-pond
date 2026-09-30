@@ -1,0 +1,22 @@
+# Fish Pond
+
+> Fish Pond is a set of interactive 3D experiments about how an artificial fish decides what to do. It runs entirely in the browser (Next.js, TypeScript, Three.js, Triforge shader graphs) with no backend, account or tracking.
+
+Site: https://fish-pond.vercel.app
+Source code: https://github.com/AftabIbrahimKazi/fish-pond
+Author: Aftab Ibrahim Kazi
+
+## Experiments
+
+- [Cognitive Arena](https://fish-pond.vercel.app/arena): one fish in a wide pond. Place stimuli and compare instant System 1 reflexes with slow System 2 appraisal, with visible short-term memory.
+- [Visual Telemetry Benchmark](https://fish-pond.vercel.app/benchmark): three fish controllers (programmed reflex, preset lottery, dual-process reasoning) fed identical inputs, with live telemetry.
+- [Underwater](https://fish-pond.vercel.app/underwater): a realistic goldfish scene shaded with Triforge (caustics, light shafts, water absorption) with a settings sidebar, WASD and arrow-key navigation and touch pads.
+
+## Documentation
+
+- [Documentation](https://fish-pond.vercel.app/docs): architecture, fish AI, shader pipeline, controls, settings workflow, design system, accessibility, performance and known limits.
+
+## Notes for summarisers
+
+- The benchmark and arena controllers are deterministic TypeScript simulations, not machine-learning models.
+- The site is static; there is no API.

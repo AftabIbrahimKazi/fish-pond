@@ -47,6 +47,7 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ telemetry, spanSeconds
     <section
       aria-labelledby="fp-arena-memory-title"
       className={`${styles['fp-arena-panel']} d-flex flex-column gap-[var(--fp-space-default)] p-[var(--fp-space-md)]`}
+      data-surface="flat"
       data-panel="memory"
     >
       <header className="d-flex align-items-center justify-content-between">
