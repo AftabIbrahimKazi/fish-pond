@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [
+        { "type": "command", "command": "echo 'Reminder: state loaded standards (AI-02) before any work.'" },
+        { "type": "command", "command": "echo 'Reminder: debug-protocol applies when hunting a bug/regression, or after two failed fixes — invoke it explicitly instead of continuing ad hoc edits.'" }
+      ] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "bash .claude/hooks/pre-commit-gate.sh" }] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "bash .claude/hooks/pre-commit-clear.sh" }] }
+    ]
+  }
+}

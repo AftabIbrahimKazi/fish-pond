@@ -1,8 +1,19 @@
-@AGENTS.md
+# CLAUDE.example.md
+
+This is a template for the `CLAUDE.md` file that must sit at the root of your project.
+Copy this file to your project root and rename it to `CLAUDE.md`, then fill in the
+project-specific values for your project.
+
+Do not rename or move this file — it is a template only. The active file must be
+`CLAUDE.md` at the project root. This file has no effect on its own.
 
 ---
 
-# Project standards — fish-pond
+# CLAUDE.md — [Project Name]
+
+This file is auto-loaded by Claude Code at the start of every session. It defines the project context, active standards, and behavioural contract for all AI work on this project.
+
+---
 
 ## Session Start Protocol
 
@@ -23,7 +34,7 @@ If `[CX]` is ever missing from a response the session has lost context. Stop imm
 |---|---|
 | CSS standard | `coding-standards/css-standards.md` |
 | HTML standard | `coding-standards/html-standards.md` |
-| Script standard | `coding-standards/ts-standards.md` |
+| Script standard | `coding-standards/[js-standards OR ts-standards OR js-and-ts-standards].md` |
 | Git standard | `coding-standards/git-standards.md` |
 | Versioning standard | `coding-standards/versioning-standards.md` |
 | SEO standard | `coding-standards/seo-standards.md` |
@@ -31,6 +42,8 @@ If `[CX]` is ever missing from a response the session has lost context. Stop imm
 | Accessibility standard | `coding-standards/accessibility-standards.md` |
 | QA standard | `coding-standards/qa/index.md` |
 | AI standard | `coding-standards/ai-standards.md` |
+| Framework | `coding-standards/frameworks/[framework].md` (remove if not applicable) |
+| CSS Framework | `coding-standards/frameworks/[bootstrap OR other].md` (remove if not applicable) |
 
 ---
 
@@ -38,15 +51,15 @@ If `[CX]` is ever missing from a response the session has lost context. Stop imm
 
 | Property | Value |
 |---|---|
-| Project name | fish-pond |
-| Framework | Next.js 16.3.7 (App Router) |
-| CSS framework | Strata CSS |
-| Script standard | TS only |
-| CSS token prefix | `--fp-` |
-| Selector signature | `fp-` |
-| Token file | src/app/variables.css |
-| Global stylesheet | src/app/globals.css |
-| Entry scripts | src/app/layout.tsx, src/app/page.tsx |
+| Project name | [Your project name] |
+| Framework | [e.g. Astro 6.4.8 / Next.js / None] |
+| CSS framework | [e.g. Bootstrap 5 / None] |
+| Script standard | [JS only / TS only / JS + TS combined] |
+| CSS token prefix | [e.g. `--ex-` / `--ct-` / `--my-`] |
+| Selector signature | [e.g. `ex-` / `ct-` / `my-`] |
+| Token file | [path to your variables/token CSS file] |
+| Global stylesheet | [path to your main CSS file] |
+| Entry scripts | [paths to your page entry scripts] |
 
 ---
 
@@ -72,6 +85,14 @@ Never edit a file without loading its standard chain first.
 - No invented rules — gaps in standards are flagged to the developer
 - **Decision preference (all session modes, including autonomous/no-pause and planning modes):** favor token efficiency and correct results with minimal-to-no Agent tool use. This is a weighting input for autonomous judgment calls, not a restriction on making them — see the `agent-usage` and `mode-kernel` skills for the detailed decision logic this preference feeds into.
 - Full rules in `coding-standards/ai-standards.md`
+
+---
+
+## Parallel-Session Coordination
+
+(Remove this section if the project does not use the parallel-session system.)
+
+Before claiming or resuming any task in the parallel-session system (`handover/` — board, locks, per-role handovers), read `handover/PROTOCOL.md` and follow it. Never touch a file that is part of shared or locked work without going through that protocol first.
 
 ---
 

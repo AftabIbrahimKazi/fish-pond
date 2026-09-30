@@ -7,3 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Project standards and skills
+
+Before editing any file, read `coding-standards/index.md` and load the standard chain for that file's role (TypeScript: `coding-standards/ts-standards.md`). Session protocol and AI behavioural contract: see `CLAUDE.md`. Workflow skills live in `.claude/skills/<name>/SKILL.md` — read the relevant one when its trigger applies.
