@@ -1,17 +1,12 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@import "./variables.css";
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+@strata base;
+@strata components;
+@strata utilities;
 
 html {
   height: 100%;
+  color-scheme: dark;
 }
 
 html,
@@ -24,26 +19,19 @@ body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--fp-color-text-main);
+  background: var(--fp-color-bg-canvas);
+  font-family: var(--fp-font-family-sans);
+  line-height: var(--fp-leading-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 * {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
 }
 
 a {
   color: inherit;
   text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
 }
