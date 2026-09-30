@@ -1,8 +1,47 @@
 # Handover — fish-pond
-Updated: 2026-09-30 (Scene 03 behaviour, entrances, collision) · Branch: master (all work uncommitted)
+Updated: 2026-09-30 (Scene 03 complete for 3D; UI overhaul next) · Repo pushed · Branch: main (pushed)
 
 ## Current state
 Next.js 16.3.7 + Three.js + Strata CSS app with four routes: `/` landing (3 cards), `/arena` (Cognitive Arena), `/benchmark` (original 3-case benchmark), `/underwater` (Scene 03, new). `tsc --noEmit`, `eslint src` and `npm run build` pass. All experiments were checked in headless Chrome (software rendering) at desktop and 390 px; not yet checked on a real GPU.
+
+## UI overhaul — theme applied (2026-09-30, uncommitted)
+Liquid Glass theme applied to existing UI only (no new features; the settings pane and Scene 03 toggles are deferred by decision). Glass on overlays over canvases: arena toolbar, panels, hint and mobile tabs (underline tabs); benchmark pill and FPS chip; underwater chips. Flat with theme shapes: landing cards, benchmark dashboard and viewport header/HUD. New tokens: `--fp-glass-tint-hover`, `-fill`, `-fill-hover`, `-hit`, `--fp-font-size-xl`. Fallbacks (`@supports`, reduced-transparency) added. Checked with tsc, eslint, build and headless screenshots at 1440 and 600 px. Still open: confirm eyeballed values against Figma; real-GPU check; keyboard focus-ring pass by hand.
+
+## Scene 03 settings sidebar (2026-10-01, uncommitted)
+Permanent part of the UI (not temporary): a left glass sidebar on `/underwater` (toggle chip "Scene settings") with 10 tabs and about 60 sliders and colour pickers for scene graphics (water, light, caustics, shafts, snow, camera, grade, plants, shadow, surfaces). "Reset all" and "Export JSON" (downloads `fish-pond-underwater-settings.json`). Values persist in localStorage, but only while `SCENE_DEFAULTS` are unchanged.
+- **Where:** `src/simulation/underwater/underwater-settings.ts` (`SCENE_DEFAULTS`, `SETTING_DEFINITIONS`), `UnderwaterEngine.applySettings`, `src/components/underwater/UnderwaterSettingsPanel.tsx`, `settings-storage.ts`. Types in `src/types/underwater.ts`.
+- **How changes apply:** `LIVE` at once; `GRAPH` (Triforge materials recompiled) and `POST` (compositor rebuilt) after a 250 ms pause, since both read values only at build time. The tunable constants were moved out of `underwater-constants.ts` into `SCENE_DEFAULTS` (same values, scene unchanged).
+- **Defaults:** the user's exported JSON (2026-10-01) is now `SCENE_DEFAULTS`. To adopt a newer export, paste its `settings` over `SCENE_DEFAULTS`; the stored browser copy is then ignored automatically. Triforge sun and ambient scaling is pinned to the original reference intensities (`TRIFORGE_*_REFERENCE_INTENSITY`), so changing defaults never re-brightens the Triforge surfaces.
+- **HUD:** "Hide HUD" chip (bottom-left) hides the title, sidebar, hint and fish readout. Sliders also have a typed value box. Fish readout (bottom-right, no card, hidden under 768 px) is fed by `onFishTelemetry` (4 Hz snapshots). Icons are inline SVGs in `HudIcons.tsx`.
+- **Not tunable yet:** fish behaviour, terrain shape, rock and seagrass placement, the environment reflection map (it is baked once at load, so the Water colour slider does not update it).
+
+## Docs, SEO and deployment (2026-10-01)
+Version 0.2.0. New `/docs` page (content in `src/app/docs/docs-content.tsx`) and a fourth landing card. SEO is driven from `src/config/site.ts` (route copy, URL) and `src/config/seo.ts` (metadata and JSON-LD builders); sitemap, robots and manifest are `src/app/*.ts`; OG images are static `public/og/*.jpg` and icons `public/icons/*`. Repo docs: README, `docs/*.md` (settings reference is generated from `underwater-settings.ts`), CHANGELOG, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, CITATION.cff, `.github/` templates. Site URL comes from `NEXT_PUBLIC_SITE_URL` (default `https://fish-pond.vercel.app`); `public/llms.txt` and `public/.well-known/security.txt` hold the default domain as text. No LICENSE file yet: the owner has to choose one. GitHub social preview must be uploaded by hand from `docs/images/social-preview.jpg`.
+
+## Benchmark layout stability (2026-10-01)
+Benchmark jitter came from layout shifts: a wrapping header and hint text of varying length resized the three canvases, and the probability bar appeared and disappeared. Now: fixed-height one-line header (chip labels drop to icons at 992 to 1199 px), constant-length hint, ellipsised titles, tabular numerals, bar always rendered. Measured: layout is identical while hovering in and out at 1920, 1280 and 1000 px.
+
+## Clean HUD for arena and benchmark (2026-10-01, uncommitted)
+Both now follow the underwater pattern: floating header (no bar), glass chips, data as plain text on the scene, panes that open on demand. Arena: "Stimuli" chip opens the palette and scenarios pane (closed by default on desktop); Mind, Memory and the control timeline are flat readouts (`data-surface="flat"`); phones keep the tabbed glass sheets. Benchmark: three full-bleed viewports across the screen, the whole surface steers the interactive threat, hint text replaces the banner, the matrix opens from a "Compare" chip; stacked on screens under 992 px. Hide HUD hides all overlays.
+
+## Touch pads and soft transitions (2026-10-01, uncommitted)
+Touch: `UnderwaterNavPad` (Move = WASD, Look = arrows) shows on narrow screens and `(pointer: coarse)`; the engine takes them via `setVirtualKeys`. Transitions: `src/app/template.tsx` wraps routes in React `<ViewTransition>` (400 ms ease-in-out cross-fade, CSS in `globals.css`); WebGL canvases fade in when ready (`data-ready-state`); HUD show/hide and the settings pane use `--fp-duration-slow` with `ease-in-out`; landing cards lift softly on hover; all honour `prefers-reduced-motion`. Known: the WebGL canvas may appear blank in the outgoing page snapshot during a route cross-fade.
+
+## Keyboard navigation (2026-10-01, uncommitted)
+`/underwater` only (`isNavigable` option on `UnderwaterEngine`): WASD moves, arrow keys rotate. It adds an offset and yaw/pitch on top of the automatic camera, so mouse parallax, cursor scare and click-to-feed are unchanged. The camera is clamped to the tank and above the seabed; rocks have no camera collision. Keys are ignored while an input or select has focus. No touch controls yet. Shaft billboards face the original camera position, so they look wrong from far off-axis.
+
+## Shared HUD across routes (2026-10-01, uncommitted)
+Landing now runs the Underwater scene as a fixed backdrop (`src/components/landing/LandingBackdrop.tsx`, default settings, glass cards). Arena and benchmark got icons (shared `src/components/HudIcons.tsx`), a "Hide/Show HUD" chip and mobile rules (icon-only toolbar buttons under 576 px; arena HUD chip moves to the top on phones). Benchmark hiding keeps the interaction banner because it is the threat input surface. The landing backdrop adds a full WebGL scene to the home page; check its cost on a real GPU.
+
+## Earlier plan (superseded by the above)
+- **Scope:** restyle all UI to the `liquid-glass-taste` skill (`.claude/skills/liquid-glass-taste/SKILL.md`; load it first). Only the 3D content of Scene 03 is considered correct for now; do not retune the scene, fish, lighting or shaders.
+- **Already done:** glass tokens in `src/app/variables.css` (`--fp-glass-*`) and the `/underwater` overlay chips (back button, hint, loading status) in `src/components/underwater/underwater.module.css`. They sit over a dark area so the glass reads faintly.
+- **To do:**
+  - Build the skill's components: a settings-style glass pane with underline tabs, toggle rows (pill toggles driven by `data-state`) and chips. Candidate Scene 03 toggles: light shafts, dappling, marine snow, food mode.
+  - Restyle the landing cards, then arena and benchmark panels, onto the same tokens (glass only over imagery/canvas, flat surface tokens elsewhere).
+  - Confirm the skill's eyeballed values (blur 28px, tint, radius 28px) against the Figma design once an export or the Figma connector is available; the Figma embed is blocked from this machine (CloudFront 403), so work from the user's screenshot.
+  - Check contrast (4.5:1), reduced-transparency/motion fallbacks, focus rings and 40px hit areas.
+- **Repo:** public at https://github.com/AftabIbrahimKazi/fish-pond, single `main` branch (deliberate deviation from git-standards branch flow). `ai-dev-kit` is a submodule: clone with `--recurse-submodules`. The pre-commit hook needs `.claude/.pre-commit-declared` created in a separate call before each commit (the hook clears it after every commit).
 
 ## Scene 03 — Underwater (`/underwater`)
 **Scene (Triforge only, no hand-written GLSL):** `@triforge/shader-core` node graphs for seabed, rocks, seagrass, backdrop dome, mirror water surface (Snell's window), light shafts and fish contact shadows; `@triforge/compositor-core` for Bloom, ColorBalance, HueSaturation, Vignette, FilmGrain. Pointer parallax moves camera and look target; adaptive pixel ratio steps down 0.25 when frames exceed 27 ms.

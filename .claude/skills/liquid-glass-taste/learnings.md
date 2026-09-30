@@ -1,2 +1,3 @@
 # Learnings — liquid-glass-taste
 - 2026-09-30: Figma embeds are blocked (CloudFront 403) for fetch and headless Chrome; a user-supplied screenshot was enough to extract the look. Values are eyeballed, so keep the "confirm against design" note until a finer export exists.
+- 2026-09-30: Applied to all routes. Glass only on true overlays (arena panels/toolbar/tabs/hint, benchmark pill + FPS chip, underwater chips); in-flow headers, HUDs, landing cards and dashboard stay flat. Inner rows use a plain white fill (--fp-glass-fill), never a second blur. Headless Chrome enforces a ~500px minimum width, so check mobile at 600px.
