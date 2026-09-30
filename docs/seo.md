@@ -35,7 +35,7 @@ Descriptions are 120-155 characters and unique per page.
 
 ## The site URL
 
-Everything absolute derives from `NEXT_PUBLIC_SITE_URL` (default `https://fish-pond.vercel.app`). Set it in Vercel to your final domain. `public/llms.txt` and `public/.well-known/security.txt` contain the default domain as plain text; update them if the domain changes.
+Everything absolute derives from `NEXT_PUBLIC_SITE_URL` (default `https://fish-pond-mu.vercel.app`). Set it in Vercel to your final domain. `public/llms.txt` and `public/.well-known/security.txt` contain the default domain as plain text; update them if the domain changes.
 
 ## Repository SEO (GitHub)
 
@@ -49,4 +49,4 @@ Everything absolute derives from `NEXT_PUBLIC_SITE_URL` (default `https://fish-p
 - Validate structured data at <https://validator.schema.org> and <https://search.google.com/test/rich-results>.
 - Preview cards with the Facebook Sharing Debugger and the LinkedIn Post Inspector.
 - Run Lighthouse on the deployed site.
-- Submit `https://fish-pond.vercel.app/sitemap.xml` in Google Search Console and Bing Webmaster Tools.
+- Submit `https://fish-pond-mu.vercel.app/sitemap.xml` in Google Search Console and Bing Webmaster Tools.

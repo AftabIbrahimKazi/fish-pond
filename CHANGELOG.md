@@ -2,6 +2,11 @@
 
 All notable changes to Fish Pond are recorded here. The version format is `major.feature.patch` (see [versioning standards](coding-standards/versioning-standards.md)); one push is one version bump.
 
+## [0.2.1] - 2026-10-01
+
+### Changed
+- Point the site URL, sitemap, social previews, `llms.txt`, `security.txt` and documentation at the live production domain, `https://fish-pond-mu.vercel.app`.
+
 ## [0.2.0] - 2026-10-01
 
 ### Added

@@ -3,7 +3,7 @@
  * structured data and the README. Titles are 50-60 characters and descriptions 120-155 (SEO-01/02).
  */
 
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://fish-pond.vercel.app').replace(/\/$/, '');
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://fish-pond-mu.vercel.app').replace(/\/$/, '');
 export const SITE_NAME = 'Fish Pond' as const;
 export const SITE_LOCALE = 'en_US' as const;
 export const SITE_LANGUAGE = 'en' as const;

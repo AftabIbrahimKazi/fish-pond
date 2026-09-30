@@ -6,9 +6,9 @@ abstract: >-
   Fish Pond is a set of browser experiments about how an artificial fish decides what to do:
   a cognitive arena contrasting instinct and deliberation, a three-way controller benchmark,
   and a realistic Triforge-shaded underwater scene with a full settings sidebar.
-version: 0.2.0
+version: 0.2.1
 date-released: "2026-10-01"
-url: "https://fish-pond.vercel.app"
+url: "https://fish-pond-mu.vercel.app"
 repository-code: "https://github.com/AftabIbrahimKazi/fish-pond"
 authors:
   - family-names: Kazi

@@ -1,6 +1,6 @@
 # Architecture
 
-A guided tour of how Fish Pond is put together. For the user-facing version see the [documentation page](https://fish-pond.vercel.app/docs).
+A guided tour of how Fish Pond is put together. For the user-facing version see the [documentation page](https://fish-pond-mu.vercel.app/docs).
 
 ## Layers
 

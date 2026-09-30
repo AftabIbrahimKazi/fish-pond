@@ -8,17 +8,17 @@
 
 A cognitive arena, a three-way controller benchmark and a realistic Triforge-shaded underwater scene, wrapped in a Liquid Glass interface.
 
-[![Live demo](https://img.shields.io/badge/live%20demo-fish--pond.vercel.app-0a2a33?style=for-the-badge&logo=vercel&logoColor=white)](https://fish-pond.vercel.app)
-[![Documentation](https://img.shields.io/badge/docs-read%20online-1f7a8c?style=for-the-badge)](https://fish-pond.vercel.app/docs)
+[![Live demo](https://img.shields.io/badge/live%20demo-fish--pond--mu.vercel.app-0a2a33?style=for-the-badge&logo=vercel&logoColor=white)](https://fish-pond-mu.vercel.app)
+[![Documentation](https://img.shields.io/badge/docs-read%20online-1f7a8c?style=for-the-badge)](https://fish-pond-mu.vercel.app/docs)
 
-![Version](https://img.shields.io/badge/version-0.2.0-f59e0b)
+![Version](https://img.shields.io/badge/version-0.2.1-f59e0b)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
 ![Three.js](https://img.shields.io/badge/Three.js-WebGL%202-000000?logo=threedotjs&logoColor=white)
 ![Deployed on Vercel](https://img.shields.io/badge/deployed%20on-Vercel-000000?logo=vercel&logoColor=white)
 
-[**Live demo**](https://fish-pond.vercel.app) · [**Documentation**](https://fish-pond.vercel.app/docs) · [**Report a bug**](https://github.com/AftabIbrahimKazi/fish-pond/issues/new?template=bug_report.md) · [**Request a feature**](https://github.com/AftabIbrahimKazi/fish-pond/issues/new?template=feature_request.md)
+[**Live demo**](https://fish-pond-mu.vercel.app) · [**Documentation**](https://fish-pond-mu.vercel.app/docs) · [**Report a bug**](https://github.com/AftabIbrahimKazi/fish-pond/issues/new?template=bug_report.md) · [**Request a feature**](https://github.com/AftabIbrahimKazi/fish-pond/issues/new?template=feature_request.md)
 
 <img src="docs/images/underwater.jpg" alt="The underwater scene: sunlit caustics on the seabed, seagrass and soft shafts of light" width="860">
 
@@ -121,7 +121,7 @@ Optional environment variable:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | `https://fish-pond.vercel.app` | Base URL used for canonical links, the sitemap, robots and social previews |
+| `NEXT_PUBLIC_SITE_URL` | `https://fish-pond-mu.vercel.app` | Base URL used for canonical links, the sitemap, robots and social previews |
 
 ## Scripts
 

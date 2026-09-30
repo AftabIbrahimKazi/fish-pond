@@ -14,7 +14,7 @@ npm run start   # http://localhost:3000
 
 1. Import the GitHub repository in Vercel (or run `vercel` from the project folder).
 2. Framework preset: **Next.js**. No build settings need changing.
-3. Add the environment variable `NEXT_PUBLIC_SITE_URL` with your final address, for example `https://fish-pond.vercel.app`.
+3. Add the environment variable `NEXT_PUBLIC_SITE_URL` with your final address, for example `https://fish-pond-mu.vercel.app`.
 4. Deploy. Pushes to `main` redeploy automatically.
 
 ### Command line

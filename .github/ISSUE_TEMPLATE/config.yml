@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Read the documentation
-    url: https://fish-pond.vercel.app/docs
+    url: https://fish-pond-mu.vercel.app/docs
     about: How the experiments, controls and settings work.
   - name: Report a security issue
     url: https://github.com/AftabIbrahimKazi/fish-pond/security/advisories/new

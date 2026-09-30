@@ -1,5 +1,5 @@
 Contact: https://github.com/AftabIbrahimKazi/fish-pond/security/advisories/new
 Expires: 2027-10-01T00:00:00.000Z
 Preferred-Languages: en
-Canonical: https://fish-pond.vercel.app/.well-known/security.txt
+Canonical: https://fish-pond-mu.vercel.app/.well-known/security.txt
 Policy: https://github.com/AftabIbrahimKazi/fish-pond/blob/main/SECURITY.md
