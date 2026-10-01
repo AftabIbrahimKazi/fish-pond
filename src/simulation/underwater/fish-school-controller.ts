@@ -1,93 +1,86 @@
 /**
- * System 1 for the whole school: fast, reflexive steering with no deliberation.
- * Priority per fish is  cursor threat  >  food  >  social behaviour  >  wandering.
+ * Motor control for the whole school. This controller makes no decisions: whether a fish flees, goes
+ * for food or swims somewhere new is decided by Laya (see `ai/fish-intent-controller.ts`) and arrives
+ * here as `agent.intent` and a chosen destination. The controller turns those decisions into movement
+ * (steering, speed, collision, bounds, body pose) and describes the world back to the model.
  *
- * Social rules:
- *  - same species: loose schooling (cohesion, alignment, separation);
- *  - different species: small fish keep clear of big ones, big fish barely notice small ones,
- *    and a small fish yields the food to a big fish crowding it.
+ * What stays in code is physics, not choice: personal space between fish, avoiding the seabed and
+ * rocks, staying in the tank, the direction away from the cursor, and swallowing a pellet that reaches
+ * the mouth.
  */
 
 import { MathUtils, Vector3 } from 'three';
 
 import { buildSeededRandom } from '../prng';
 
-import { CursorThreat, FishAgent, FishMode } from '../../types/underwater';
+import { CursorThreat, DestinationCandidate, FishAgent, FishMode, FishPerception } from '../../types/underwater';
+import {
+  DESTINATION_OPTION_COUNT,
+  FOOD_AWARE_BODIES,
+  HAND_AWARE_BODIES,
+  BODY_CENTIMETRES,
+  INTENT_COMMIT,
+  INTENT_STALE_SECONDS,
+  SPOT_CLOSE_FISH_BODIES,
+  SPOT_HIGH_FRACTION,
+  SPOT_LOW_FRACTION,
+} from './ai/fish-intent-constants';
 import { FoodPelletSimulation } from './food-pellet-simulation';
 import { HeightSampler } from './scene-geometry';
 import { ROCK_BURY_FRACTION, ROCK_PLACEMENTS, SEAGRASS_PATCHES } from './underwater-constants';
 import {
   ARRIVE_MIN_SPEED,
-  BODY_RADIUS_FRACTION,
-  COLLISION_SAMPLES,
-  FISH_COLLISION_FRACTION,
-  GRAZE_MIN_RUN,
-  GRAZE_PITCH_MAX,
-  GRAZE_RANGE,
-  NIBBLE_AMOUNT,
-  NIBBLE_RATE,
-  PITCH_SMOOTH,
-  ROCK_COLLIDE_SCALE,
   ARRIVE_SLOWDOWN,
+  BODY_RADIUS_FRACTION,
   BOUNDS_GAIN,
-  BOUNDS_PUSH_LIMIT,
-  COVER_RADIUS,
-  COVER_SCORE_WEIGHT,
-  CROWD_SCORE_PENALTY,
-  CROWD_SCORE_RADIUS,
-  CRUISE_ACCEL_FACTOR,
-  DWELL_MAX,
-  DWELL_MIN,
-  DWELL_SPEED_FACTOR,
-  GLIDE_AMOUNT,
-  GLIDE_RATE,
-  MATE_SCORE_WEIGHT,
-  MATE_SOCIABILITY_FLOOR,
-  PATH_SEED,
-  SEEK_ACCEL_FACTOR,
-  TRIP_IDEAL,
-  TRIP_SCORE_WEIGHT,
-  WAYPOINT_ARRIVE_RADIUS,
-  WAYPOINT_CANDIDATES,
-  WAYPOINT_NOISE,
-  WAYPOINT_TIMEOUT,
-  WAYPOINT_Y_SPREAD,
   BOUNDS_MARGIN,
-  CROWD_SHY_FACTOR,
-  CROWD_SHY_RADIUS,
+  BOUNDS_PUSH_LIMIT,
+  COLLISION_SAMPLES,
+  COVER_RADIUS,
+  CRUISE_ACCEL_FACTOR,
+  DWELL_SPEED_FACTOR,
   EAT_RADIUS_BASE,
   EAT_RADIUS_PER_LENGTH,
+  FISH_BANK_LIMIT,
   FISH_CEILING_Y,
+  FISH_COLLISION_FRACTION,
   FISH_DOMAIN_MAX_X,
   FISH_DOMAIN_MAX_Z,
   FISH_DOMAIN_MIN_X,
   FISH_DOMAIN_MIN_Z,
   FISH_GROUND_CLEARANCE,
-  FISH_BANK_LIMIT,
   FISH_PITCH_LIMIT,
   FLEE_ACCEL_FACTOR,
   FOOD_ARRIVE_MIN_SPEED,
   FOOD_ARRIVE_SLOWDOWN,
-  FOOD_MIN_APPETITE,
   FOOD_WEIGHT,
+  GLIDE_AMOUNT,
+  GLIDE_RATE,
+  GRAZE_MIN_RUN,
+  GRAZE_PITCH_MAX,
+  GRAZE_RANGE,
   GULP_SECONDS,
   GULP_SPEED_FACTOR,
   HEADING_TURN_RATE,
   MOUTH_OFFSET_FRACTION,
+  NIBBLE_AMOUNT,
+  NIBBLE_RATE,
   PANIC_DECAY,
-  PANIC_FOOD_BLOCK,
   PANIC_MIN_FLEE,
+  PATH_SEED,
   PITCH_GAIN,
+  PITCH_SMOOTH,
+  ROCK_COLLIDE_SCALE,
   ROLL_DAMPING,
   ROLL_GAIN,
   SATIETY_DECAY,
   SATIETY_PER_PELLET,
-  SCHOOL_RADIUS,
-  SMALL_AVOIDS_LARGE_RADIUS,
-  SMALL_AVOIDS_LARGE_WEIGHT,
-  THREAT_RADIUS_PER_LENGTH,
+  SEEK_ACCEL_FACTOR,
   WANDER_FREQUENCY,
   WANDER_TURN,
+  WAYPOINT_ARRIVE_RADIUS,
+  WAYPOINT_TIMEOUT,
+  WAYPOINT_Y_SPREAD,
 } from './underwater-constants';
 
 const EPSILON = 1e-4 as const;
@@ -96,6 +89,7 @@ const FLEE_BLEND_BASE = 0.6 as const;
 const FLEE_HORIZONTAL_BIAS = 0.55 as const;
 const FLEE_VERTICAL_LIMIT = 0.5 as const;
 const FLEE_MODE_SPEED = 0.85 as const;
+const WORLD_UP = 0.4 as const;
 
 export class FishSchoolController {
   private readonly _agents: readonly FishAgent[];
@@ -104,12 +98,9 @@ export class FishSchoolController {
   private readonly _desired = new Vector3();
   private readonly _forward = new Vector3();
   private readonly _offset = new Vector3();
-  private readonly _centroid = new Vector3();
-  private readonly _flock = new Vector3();
   private readonly _foodPoint = new Vector3();
   private readonly _closest = new Vector3();
   private readonly _mouth = new Vector3();
-  private readonly _candidate = new Vector3();
   private readonly _random = buildSeededRandom(PATH_SEED);
   private readonly _coverPoints: readonly Vector3[] = [
     ...SEAGRASS_PATCHES.map((patch) => new Vector3(patch.x, 0, patch.z)),
@@ -131,7 +122,7 @@ export class FishSchoolController {
       agent.satiety = Math.max(0, agent.satiety - SATIETY_DECAY * deltaSeconds);
       agent.gulp = Math.max(0, agent.gulp - deltaSeconds);
       agent.panic = Math.max(0, agent.panic - PANIC_DECAY * deltaSeconds);
-      this._updateThreat(agent, threat);
+      this._updateFleeDirection(agent, threat);
       this._steer(agent, deltaSeconds, elapsedSeconds);
       this._updateBody(agent, deltaSeconds);
       this._updateEating(agent);
@@ -139,24 +130,83 @@ export class FishSchoolController {
     this._resolveFishCollisions();
   }
 
-  /** Reflex: only a cursor that is actually close (to the fish, along its ray) startles a fish. */
-  private _updateThreat(agent: FishAgent, threat: CursorThreat | null): void {
-    if (!threat) return;
+  /** What this fish senses right now, ready to be described to the model. */
+  public getPerception(agent: FishAgent, threat: CursorThreat | null): FishPerception {
+    const centimetresPerMetre = BODY_CENTIMETRES[agent.profile.species] / agent.profile.targetLength;
+    let handCentimetres: number | null = null;
+    if (threat) {
+      const handDistance = this._getRayDistance(agent, threat);
+      if (handDistance < agent.profile.targetLength * HAND_AWARE_BODIES) handCentimetres = Math.round(handDistance * centimetresPerMetre);
+    }
+    let foodCentimetres: number | null = null;
+    const slot = this._pellets.getNearest(agent.position, agent.profile.targetLength * FOOD_AWARE_BODIES, this._foodPoint);
+    if (slot >= 0) foodCentimetres = Math.round(agent.position.distanceTo(this._foodPoint) * centimetresPerMetre);
+    return {
+      handCentimetres,
+      handSpeed: threat?.speed ?? 0,
+      foodCentimetres,
+      appetite: MathUtils.clamp(1 - agent.satiety, 0, 1),
+      panic: agent.panic,
+    };
+  }
+
+  /** A few places the fish could swim to, each described in words. The model picks one. */
+  public getDestinationCandidates(agent: FishAgent): DestinationCandidate[] {
+    const candidates: DestinationCandidate[] = [];
+    for (let index = 0; index < DESTINATION_OPTION_COUNT; index += 1) {
+      const position = new Vector3(
+        MathUtils.lerp(FISH_DOMAIN_MIN_X + BOUNDS_MARGIN, FISH_DOMAIN_MAX_X - BOUNDS_MARGIN, this._random()),
+        0,
+        MathUtils.lerp(FISH_DOMAIN_MIN_Z + BOUNDS_MARGIN, FISH_DOMAIN_MAX_Z - BOUNDS_MARGIN, this._random()),
+      );
+      const floor = this._sampleHeight(position.x, position.z) + FISH_GROUND_CLEARANCE + WORLD_UP * HALF;
+      const wantedY = agent.profile.preferredDepth + agent.temperament.depthOffset + (this._random() - HALF) * 2 * WAYPOINT_Y_SPREAD;
+      position.y = MathUtils.clamp(wantedY, floor, FISH_CEILING_Y - WORLD_UP);
+      candidates.push({ position, description: this._describeSpot(agent, position, floor) });
+    }
+    return candidates;
+  }
+
+  /** Records the destination the model chose. */
+  public setDestination(agent: FishAgent, candidate: DestinationCandidate): void {
+    agent.waypoint.copy(candidate.position);
+    agent.waypointAge = 0;
+    agent.needsDestination = false;
+  }
+
+  private _describeSpot(agent: FishAgent, position: Vector3, floor: number): string {
+    const bodies = Math.max(1, Math.round(position.distanceTo(agent.position) / agent.profile.targetLength));
+    let coverDistance = Infinity;
+    for (const cover of this._coverPoints) coverDistance = Math.min(coverDistance, Math.hypot(position.x - cover.x, position.z - cover.z));
+    const cover = coverDistance < COVER_RADIUS ? 'hidden among seagrass and rocks' : 'in open water';
+    const nearest = this._agents.reduce((best, other) => (other === agent ? best : Math.min(best, position.distanceTo(other.position))), Infinity);
+    const company = nearest < agent.profile.targetLength * SPOT_CLOSE_FISH_BODIES ? 'close to another fish' : 'away from the other fish';
+    const level = (position.y - floor) / Math.max(EPSILON, FISH_CEILING_Y - floor);
+    let height = 'in mid-water';
+    if (level < SPOT_LOW_FRACTION) height = 'near the seabed';
+    else if (level > SPOT_HIGH_FRACTION) height = 'near the surface';
+    return `${bodies} body lengths away, ${cover}, ${company}, ${height}.`;
+  }
+
+  private _getRayDistance(agent: FishAgent, threat: CursorThreat): number {
     this._offset.copy(agent.position).sub(threat.origin);
     const along = Math.max(0, this._offset.dot(threat.direction));
     this._closest.copy(threat.origin).addScaledVector(threat.direction, along);
-    this._offset.copy(agent.position).sub(this._closest);
-    const distance = this._offset.length();
-    const radius = (agent.profile.threatRadius + agent.profile.targetLength * THREAT_RADIUS_PER_LENGTH) * agent.temperament.boldness;
-    if (distance >= radius) return;
+    return this._offset.copy(agent.position).sub(this._closest).length();
+  }
 
-    const strength = 1 - distance / radius;
-    if (strength <= agent.panic) return;
-    agent.panic = strength;
+  /** Geometry only: which way is "away" from the cursor. Whether to go that way is Laya's call. */
+  private _updateFleeDirection(agent: FishAgent, threat: CursorThreat | null): void {
+    if (!threat) return;
+    const distance = this._getRayDistance(agent, threat);
     if (distance < EPSILON) this._offset.set(Math.random() - HALF, 0, Math.random() - HALF);
     this._offset.y *= FLEE_HORIZONTAL_BIAS;
     this._offset.y = MathUtils.clamp(this._offset.y, -FLEE_VERTICAL_LIMIT, FLEE_VERTICAL_LIMIT);
     agent.fleeDirection.copy(this._offset).normalize();
+  }
+
+  private _isIntentFresh(agent: FishAgent): boolean {
+    return agent.intent.hasAnswer && agent.intent.ageSeconds < INTENT_STALE_SECONDS;
   }
 
   private _steer(agent: FishAgent, deltaSeconds: number, elapsedSeconds: number): void {
@@ -171,7 +221,7 @@ export class FishSchoolController {
     const pathSpeed = this._followPath(agent, deltaSeconds, desired);
     desired.applyAxisAngle(Y_AXIS, wobble);
 
-    this._addSocial(agent, desired);
+    this._addSeparation(agent, desired);
     this._addBounds(agent, desired);
 
     const glide = 1 + Math.sin(elapsedSeconds * GLIDE_RATE * temperament.wanderRate + agent.wanderPhase * 2) * GLIDE_AMOUNT;
@@ -181,6 +231,7 @@ export class FishSchoolController {
     desiredSpeed = this._applyFood(agent, desired, desiredSpeed);
 
     let accelScale: number = this._isSeekingFood(agent) ? SEEK_ACCEL_FACTOR : CRUISE_ACCEL_FACTOR;
+    if (this._isIntentFresh(agent) && agent.intent.danger >= INTENT_COMMIT) agent.panic = Math.max(agent.panic, agent.intent.danger);
     if (agent.panic > PANIC_MIN_FLEE) {
       const blend = Math.min(1, FLEE_BLEND_BASE + agent.panic);
       desired.normalize().lerp(agent.fleeDirection, blend);
@@ -201,14 +252,13 @@ export class FishSchoolController {
     return agent.mode === FishMode.SEEK_FOOD;
   }
 
+  /** Moves toward food only when Laya has said the fish should eat. */
   private _applyFood(agent: FishAgent, desired: Vector3, cruise: number): number {
-    const appetite = MathUtils.clamp(1 - agent.satiety, 0, 1);
-    if (appetite < FOOD_MIN_APPETITE || agent.panic > PANIC_FOOD_BLOCK) return cruise;
+    if (!this._isIntentFresh(agent) || agent.intent.eat < INTENT_COMMIT) return cruise;
     const slot = this._pellets.getNearest(agent.position, agent.profile.perceptionRadius, this._foodPoint);
     if (slot < 0) return cruise;
 
-    let weight = Math.min(1, FOOD_WEIGHT * appetite * agent.temperament.greed);
-    if (this._isCrowdedByLarger(agent)) weight *= CROWD_SHY_FACTOR;
+    const weight = Math.min(1, FOOD_WEIGHT * agent.intent.eat);
     this._offset.copy(this._foodPoint).sub(agent.position);
     const distance = this._offset.length();
     this._offset.normalize();
@@ -224,25 +274,22 @@ export class FishSchoolController {
   }
 
   /**
-   * Path picking: each fish holds a destination, swims there in a wide curve, hovers for a
-   * moment on arrival, then chooses the next one. Writes the heading into `desired` and
-   * returns the cruise speed to use.
+   * Swims toward the destination Laya chose. On arrival (or when stuck) the fish asks for a new one and
+   * drifts slowly until the answer comes back; it never picks a destination itself.
    */
   private _followPath(agent: FishAgent, deltaSeconds: number, desired: Vector3): number {
     const { profile, temperament } = agent;
     const baseSpeed = profile.cruiseSpeed * temperament.speedScale;
     agent.waypointAge += deltaSeconds;
 
-    const toGoal = this._offset.copy(agent.waypoint).sub(agent.position);
-    const distance = toGoal.length();
-    if (agent.dwell > 0) {
-      agent.dwell -= deltaSeconds;
+    if (agent.needsDestination) {
       desired.copy(this._forward);
       return baseSpeed * DWELL_SPEED_FACTOR;
     }
+    const toGoal = this._offset.copy(agent.waypoint).sub(agent.position);
+    const distance = toGoal.length();
     if (distance < WAYPOINT_ARRIVE_RADIUS || agent.waypointAge > WAYPOINT_TIMEOUT) {
-      agent.dwell = DWELL_MIN + this._random() * (DWELL_MAX - DWELL_MIN);
-      this._pickWaypoint(agent);
+      agent.needsDestination = true;
       desired.copy(this._forward);
       return baseSpeed * DWELL_SPEED_FACTOR;
     }
@@ -251,95 +298,16 @@ export class FishSchoolController {
     return Math.min(baseSpeed, Math.max(ARRIVE_MIN_SPEED, distance * ARRIVE_SLOWDOWN));
   }
 
-  /** Scores a handful of random spots by this fish's taste and heads for the best one. */
-  private _pickWaypoint(agent: FishAgent): void {
-    const { profile, temperament } = agent;
-    let bestScore = -Infinity;
-    for (let index = 0; index < WAYPOINT_CANDIDATES; index += 1) {
-      const candidate = this._candidate.set(
-        MathUtils.lerp(FISH_DOMAIN_MIN_X + BOUNDS_MARGIN, FISH_DOMAIN_MAX_X - BOUNDS_MARGIN, this._random()),
-        0,
-        MathUtils.lerp(FISH_DOMAIN_MIN_Z + BOUNDS_MARGIN, FISH_DOMAIN_MAX_Z - BOUNDS_MARGIN, this._random()),
-      );
-      const floor = this._sampleHeight(candidate.x, candidate.z) + FISH_GROUND_CLEARANCE + 0.3;
-      const wantedY = profile.preferredDepth + temperament.depthOffset + (this._random() - HALF) * 2 * WAYPOINT_Y_SPREAD;
-      candidate.y = MathUtils.clamp(wantedY, floor, FISH_CEILING_Y - 0.4);
-
-      const score = this._scoreWaypoint(agent, candidate) + this._random() * WAYPOINT_NOISE;
-      if (score > bestScore) {
-        bestScore = score;
-        agent.waypoint.copy(candidate);
-      }
-    }
-    agent.waypointAge = 0;
-  }
-
-  private _scoreWaypoint(agent: FishAgent, candidate: Vector3): number {
-    const { temperament } = agent;
-    let score = -Math.abs(candidate.distanceTo(agent.position) - TRIP_IDEAL) * TRIP_SCORE_WEIGHT;
-
-    let coverDistance = Infinity;
-    for (const cover of this._coverPoints) {
-      coverDistance = Math.min(coverDistance, Math.hypot(candidate.x - cover.x, candidate.z - cover.z));
-    }
-    const cover = 1 - MathUtils.clamp(coverDistance / COVER_RADIUS, 0, 1);
-    score += (temperament.boldness - 1) * COVER_SCORE_WEIGHT * cover;
-
-    for (const other of this._agents) {
-      if (other === agent) continue;
-      const gap = candidate.distanceTo(other.position);
-      if (gap < CROWD_SCORE_RADIUS) score -= CROWD_SCORE_PENALTY;
-      if (other.profile.species === agent.profile.species && temperament.sociability > MATE_SOCIABILITY_FLOOR) {
-        score += (temperament.sociability - MATE_SOCIABILITY_FLOOR) * MATE_SCORE_WEIGHT * (1 - MathUtils.clamp(gap / SCHOOL_RADIUS, 0, 1));
-      }
-    }
-    return score;
-  }
-
-  private _isCrowdedByLarger(agent: FishAgent): boolean {
-    for (const other of this._agents) {
-      if (other === agent || other.profile.targetLength <= agent.profile.targetLength) continue;
-      if (other.position.distanceTo(agent.position) < other.profile.targetLength * CROWD_SHY_RADIUS) return true;
-    }
-    return false;
-  }
-
-  private _addSocial(agent: FishAgent, desired: Vector3): void {
+  /** Personal space: overlapping fish are nudged apart so bodies never need to cross. */
+  private _addSeparation(agent: FishAgent, desired: Vector3): void {
     const { profile } = agent;
-    this._centroid.set(0, 0, 0);
-    this._flock.set(0, 0, 0);
-    let mates = 0;
     for (const other of this._agents) {
       if (other === agent) continue;
       this._offset.copy(agent.position).sub(other.position);
       const distance = this._offset.length();
-      if (distance < EPSILON) continue;
-
-      if (other.profile.species === profile.species) {
-        if (distance < SCHOOL_RADIUS) {
-          this._centroid.add(other.position);
-          this._flock.add(other.velocity);
-          mates += 1;
-        }
-        if (distance < profile.personalSpace) {
-          desired.addScaledVector(this._offset, (profile.separationWeight * (1 - distance / profile.personalSpace)) / distance);
-        }
-        continue;
-      }
-
-      const isSmaller = profile.targetLength < other.profile.targetLength;
-      const reach = isSmaller ? other.profile.targetLength * SMALL_AVOIDS_LARGE_RADIUS : profile.personalSpace * HALF;
-      if (distance < reach) {
-        const weight = isSmaller ? SMALL_AVOIDS_LARGE_WEIGHT : profile.separationWeight * HALF;
-        desired.addScaledVector(this._offset, (weight * (1 - distance / reach)) / distance);
-      }
+      if (distance < EPSILON || distance >= profile.personalSpace) continue;
+      desired.addScaledVector(this._offset, (profile.separationWeight * (1 - distance / profile.personalSpace)) / distance);
     }
-
-    if (mates === 0) return;
-    this._centroid.divideScalar(mates).sub(agent.position);
-    const { sociability } = agent.temperament;
-    if (this._centroid.length() > profile.personalSpace) desired.addScaledVector(this._centroid.normalize(), profile.cohesionWeight * sociability);
-    if (this._flock.lengthSq() > EPSILON) desired.addScaledVector(this._flock.normalize(), profile.alignmentWeight * sociability);
   }
 
   private _addBounds(agent: FishAgent, desired: Vector3): void {
@@ -356,8 +324,24 @@ export class FishSchoolController {
     return 0;
   }
 
+  /** The tank walls: once a fish has swum in, it can never leave the water, whatever it decided. */
+  private _clampToTank(agent: FishAgent): void {
+    const { position, velocity } = agent;
+    if (!agent.hasEntered) {
+      agent.hasEntered = position.x >= FISH_DOMAIN_MIN_X && position.x <= FISH_DOMAIN_MAX_X;
+      return;
+    }
+    if (position.x < FISH_DOMAIN_MIN_X || position.x > FISH_DOMAIN_MAX_X) velocity.x = 0;
+    if (position.z < FISH_DOMAIN_MIN_Z || position.z > FISH_DOMAIN_MAX_Z) velocity.z = 0;
+    if (position.y > FISH_CEILING_Y) velocity.y = Math.min(0, velocity.y);
+    position.x = MathUtils.clamp(position.x, FISH_DOMAIN_MIN_X, FISH_DOMAIN_MAX_X);
+    position.z = MathUtils.clamp(position.z, FISH_DOMAIN_MIN_Z, FISH_DOMAIN_MAX_Z);
+    position.y = Math.min(position.y, FISH_CEILING_Y);
+  }
+
   private _updateBody(agent: FishAgent, deltaSeconds: number): void {
     agent.position.addScaledVector(agent.velocity, deltaSeconds);
+    this._clampToTank(agent);
 
     const horizontal = Math.hypot(agent.velocity.x, agent.velocity.z);
     if (horizontal > EPSILON) {
@@ -443,6 +427,7 @@ export class FishSchoolController {
     }
   }
 
+  /** A pellet that reaches the mouth is swallowed: contact, not a choice. */
   private _updateEating(agent: FishAgent): void {
     if (agent.gulp > 0) return;
     const length = agent.profile.targetLength;

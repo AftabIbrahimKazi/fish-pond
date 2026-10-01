@@ -126,15 +126,31 @@
   z-index: var(--fp-z-overlay);
 }
 
+.fp-underwater-ai-toggle {
+  bottom: calc(var(--fp-space-md) + var(--fp-glass-hit) + var(--fp-space-xs));
+  left: var(--fp-space-md);
+  z-index: var(--fp-z-overlay);
+}
+
+.fp-underwater-ai-toggle[data-ai-status="active"] {
+  border-color: var(--fp-color-accent-calm);
+}
+
+.fp-underwater-ai-toggle[data-ai-status="failed"] {
+  border-color: var(--fp-color-accent-threat);
+}
+
 .fp-underwater-header,
 .fp-underwater-hint,
 .fp-underwater-settings-ts,
+.fp-underwater-ai-toggle,
 .fp-underwater-telemetry {
   transition: opacity var(--fp-duration-slow) ease-in-out, visibility var(--fp-duration-slow) ease-in-out;
 }
 
 .fp-underwater[data-hud-state="hidden"] .fp-underwater-header,
 .fp-underwater[data-hud-state="hidden"] .fp-underwater-hint,
+.fp-underwater[data-hud-state="hidden"] .fp-underwater-ai-toggle,
 .fp-underwater[data-hud-state="hidden"] .fp-underwater-settings-ts,
 .fp-underwater[data-hud-state="hidden"] .fp-underwater-telemetry {
   opacity: 0;
@@ -217,11 +233,12 @@
   visibility: hidden;
 }
 
-/* Fish readout: text straight on the scene, no card */
+/* Fish readout: compact text straight on the scene, no card */
 
 .fp-underwater-telemetry {
   bottom: var(--fp-space-md);
   color: var(--fp-glass-text);
+  max-height: calc(100dvh - var(--fp-space-xxl) - var(--fp-glass-hit) - 2 * var(--fp-space-md));
   pointer-events: none;
   right: var(--fp-space-md);
   text-align: right;
@@ -229,8 +246,23 @@
   z-index: var(--fp-z-raised);
 }
 
+.fp-underwater-telemetry-fish {
+  pointer-events: auto;
+  transform-origin: right center;
+  transition: transform var(--fp-duration-normal) ease-in-out;
+}
+
+.fp-underwater-telemetry-fish[data-focus="true"] {
+  transform: scale(1.12);
+}
+
+.fp-underwater-telemetry-marker {
+  color: var(--fp-color-accent-telemetry);
+  font-family: var(--fp-font-family-mono);
+}
+
 .fp-underwater-telemetry-name {
-  font-size: var(--fp-font-size-default);
+  font-size: var(--fp-font-size-xs);
   font-weight: var(--fp-font-weight-medium);
   letter-spacing: var(--fp-tracking-tight);
   line-height: var(--fp-leading-tight);
@@ -238,14 +270,16 @@
 
 .fp-underwater-telemetry-state {
   color: var(--fp-glass-text);
-  font-size: var(--fp-font-size-xs);
+  font-size: var(--fp-font-size-xxs);
+  line-height: var(--fp-leading-tight);
 }
 
 .fp-underwater-telemetry-grid {
   font-family: var(--fp-font-family-mono);
   font-size: var(--fp-font-size-xxs);
-  gap: var(--fp-space-xxxs) var(--fp-space-md);
-  grid-template-columns: auto auto;
+  gap: 0 var(--fp-space-xs);
+  grid-template-columns: repeat(4, auto);
+  line-height: var(--fp-leading-tight);
   margin: 0;
 }
 
@@ -274,6 +308,86 @@
 }
 
 .fp-underwater-telemetry-state [data-tone="calm"] {
+  color: var(--fp-color-accent-calm);
+}
+
+/* Fish tooltip: plain text with an arrow that follows one fish for a few seconds (no glass wrapper) */
+
+.fp-underwater-tooltip {
+  color: var(--fp-glass-text);
+  left: 0;
+  pointer-events: none;
+  text-align: center;
+  text-shadow: 0 1px 10px var(--fp-color-neutral-950-a75);
+  top: 0;
+  transform: translate(var(--fp-tooltip-x, 0), var(--fp-tooltip-y, 0)) translate(-50%, calc(-100% - var(--fp-space-default)));
+  transition: opacity var(--fp-duration-normal) ease-in-out;
+  width: max-content;
+  z-index: var(--fp-z-overlay);
+}
+
+.fp-underwater-tooltip[data-placement="below"] {
+  transform: translate(var(--fp-tooltip-x, 0), var(--fp-tooltip-y, 0)) translate(-50%, var(--fp-space-xl));
+}
+
+.fp-underwater-tooltip::after {
+  border-bottom: 2px solid var(--fp-glass-text);
+  border-right: 2px solid var(--fp-glass-text);
+  bottom: calc(-0.2rem - var(--fp-space-xxs));
+  content: "";
+  filter: drop-shadow(0 1px 4px var(--fp-color-neutral-950-a75));
+  height: 0.55rem;
+  left: calc(50% + var(--fp-tooltip-arrow, 0px));
+  position: absolute;
+  transform: translateX(-50%) rotate(45deg);
+  width: 0.55rem;
+}
+
+.fp-underwater-tooltip[data-placement="below"]::after {
+  border-bottom: 0;
+  border-left: 2px solid var(--fp-glass-text);
+  border-right: 0;
+  border-top: 2px solid var(--fp-glass-text);
+  bottom: auto;
+  top: calc(-0.2rem - var(--fp-space-xxs));
+}
+
+.fp-underwater-tooltip[data-state="hidden"],
+.fp-underwater[data-hud-state="hidden"] .fp-underwater-tooltip {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.fp-underwater-tooltip-title {
+  font-size: var(--fp-font-size-xs);
+  font-weight: var(--fp-font-weight-semibold);
+  line-height: var(--fp-leading-tight);
+}
+
+.fp-underwater-tooltip-marker {
+  color: var(--fp-color-accent-telemetry);
+  font-family: var(--fp-font-family-mono);
+}
+
+.fp-underwater-tooltip-state {
+  color: var(--fp-glass-text-muted);
+  font-size: var(--fp-font-size-xxs);
+  line-height: var(--fp-leading-tight);
+}
+
+.fp-underwater-tooltip-state[data-tone="threat"] {
+  color: var(--fp-color-accent-threat);
+}
+
+.fp-underwater-tooltip-state[data-tone="food"] {
+  color: var(--fp-color-accent-food);
+}
+
+.fp-underwater-tooltip-state[data-tone="info"] {
+  color: var(--fp-color-accent-telemetry);
+}
+
+.fp-underwater-tooltip-state[data-tone="calm"] {
   color: var(--fp-color-accent-calm);
 }
 
@@ -486,6 +600,13 @@
     top: calc(var(--fp-space-xxl) + var(--fp-space-default));
   }
 
+  .fp-underwater-ai-toggle {
+    bottom: auto;
+    left: auto;
+    right: var(--fp-space-md);
+    top: calc(var(--fp-space-xxl) + var(--fp-space-default) + var(--fp-glass-hit) + var(--fp-space-xs));
+  }
+
   .fp-underwater-telemetry {
     bottom: calc(var(--fp-space-md) + 2 * var(--fp-glass-hit) + var(--fp-space-xl) + var(--fp-space-sm));
   }
@@ -501,6 +622,13 @@
     left: auto;
     right: var(--fp-space-md);
     top: calc(var(--fp-space-xxl) + var(--fp-space-default));
+  }
+
+  .fp-underwater-ai-toggle {
+    bottom: auto;
+    left: auto;
+    right: var(--fp-space-md);
+    top: calc(var(--fp-space-xxl) + var(--fp-space-default) + var(--fp-glass-hit) + var(--fp-space-xs));
   }
 
   .fp-underwater-subtitle,
@@ -519,6 +647,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .fp-underwater-telemetry-fish[data-focus="true"] {
+    transform: none;
+  }
+
   .fp-underwater-settings-ts[data-state="closed"] .fp-underwater-settings-pane {
     transform: none;
   }

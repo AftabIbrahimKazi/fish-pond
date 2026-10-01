@@ -2,13 +2,18 @@
   "name": "fish-pond",
   "version": "0.2.1",
   "private": true,
+  "engines": {
+    "node": ">=22.6.0"
+  },
   "scripts": {
+    "postinstall": "node --experimental-strip-types --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/copy-ort.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@huggingface/tokenizers": "^0.2.0",
     "@triforge/compositor-core": "^0.1.2",
     "@triforge/geometry-nodes": "^0.1.1",
     "@triforge/shader-core": "^0.4.2",

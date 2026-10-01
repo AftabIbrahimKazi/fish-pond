@@ -15,10 +15,10 @@ export const AUTHOR_URL = 'https://github.com/AftabIbrahimKazi' as const;
 export const REPO_URL = 'https://github.com/AftabIbrahimKazi/fish-pond' as const;
 export const OG_IMAGE_WIDTH = 1200 as const;
 export const OG_IMAGE_HEIGHT = 630 as const;
-export const LAST_MODIFIED = '2026-10-01' as const;
+export const LAST_MODIFIED = '2026-10-02' as const;
 
 export const SITE_DESCRIPTION =
-  'Three browser experiments in fish behaviour: a cognitive arena, a three-way AI benchmark and a realistic Triforge-shaded underwater scene.' as const;
+  'Three fish experiments: two scripted simulations with no AI, and a realistic underwater scene where the Laya-AI model decides what each goldfish does.' as const;
 
 export const SITE_KEYWORDS: readonly string[] = [
   'fish pond',
@@ -29,6 +29,8 @@ export const SITE_KEYWORDS: readonly string[] = [
   'dual-process cognition',
   'System 1 and System 2',
   'fish behaviour AI',
+  'Laya-AI',
+  'ONNX Runtime Web',
   'procedural water caustics',
   'Next.js 3D experiment',
   'liquid glass UI',
@@ -71,7 +73,7 @@ export const ROUTES: readonly RouteSeo[] = [
     name: 'Cognitive Arena',
     title: 'Cognitive Arena — Fish Instinct vs Deliberation | Fish Pond',
     description:
-      'Place stimuli in a wide pond and watch one fish react: instant System 1 reflexes versus slower System 2 appraisal, with visible short-term memory.',
+      'Place stimuli in a wide pond and watch one fish react: scripted System 1 reflexes versus slower System 2 appraisal. Pure code, no AI model.',
     ogTitle: 'Cognitive Arena',
     ogSubtitle: 'Instinct versus deliberation in one fish',
     ogImageAlt: 'Cognitive Arena: one fish in a wide pond with stimulus palette, mind readout and decision timeline',
@@ -85,7 +87,7 @@ export const ROUTES: readonly RouteSeo[] = [
     name: 'Visual Telemetry Benchmark',
     title: 'Visual Telemetry Benchmark — Three Fish Controllers',
     description:
-      'Compare three fish control architectures side by side: programmed reflex, preset lottery and dual-process reasoning, all fed identical inputs.',
+      'Compare three scripted fish controllers side by side: programmed reflex, preset lottery and blended intent, all fed identical inputs. No AI model.',
     ogTitle: 'Visual Telemetry Benchmark',
     ogSubtitle: 'Three fish controllers, identical inputs',
     ogImageAlt: 'Benchmark: three ponds side by side showing reflex, lottery and dual-process fish with live telemetry',
@@ -99,7 +101,7 @@ export const ROUTES: readonly RouteSeo[] = [
     name: 'Underwater',
     title: 'Underwater — Realistic 3D Goldfish Scene | Fish Pond',
     description:
-      'Explore a realistic underwater scene with caustics, light shafts and real goldfish models. Fly around with WASD, feed the fish and tune every detail.',
+      'Explore a realistic underwater scene where Laya-AI, an open model running in your browser, decides what each goldfish does. Feed them and tune it.',
     ogTitle: 'Underwater',
     ogSubtitle: 'A realistic goldfish scene, shaded with Triforge',
     ogImageAlt: 'Underwater scene with sunlit caustics on the seabed, seagrass and shafts of light',
@@ -113,7 +115,7 @@ export const ROUTES: readonly RouteSeo[] = [
     name: 'Documentation',
     title: 'Fish Pond Documentation — Architecture, AI and Controls',
     description:
-      'Deep-dive documentation for Fish Pond: the fish behaviour engine, Triforge shader pipeline, dual-process AI, scene settings, controls and design system.',
+      'Deep-dive documentation for Fish Pond: what uses AI and what is scripted, the Triforge shader pipeline, scene settings, controls and design system.',
     ogTitle: 'Documentation',
     ogSubtitle: 'Architecture, AI, shaders, controls and design system',
     ogImageAlt: 'Fish Pond documentation page over the underwater scene',

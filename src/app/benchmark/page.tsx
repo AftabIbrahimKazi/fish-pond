@@ -20,6 +20,7 @@ import {
   TimerIcon,
   TrashIcon,
 } from '../../components/HudIcons';
+import { AiNotice } from '../../components/AiNotice';
 import { telemetryBus } from '../../simulation/telemetry-bus';
 import { BenchmarkCase, InputMode } from '../../types/benchmark';
 
@@ -39,7 +40,7 @@ const MATRIX_ROWS: MatrixRow[] = [
     feature: 'Decision Mechanism',
     reflex: 'Binary threshold tree (if/else)',
     lottery: 'Weighted lottery over preset dictionary',
-    organism: 'Continuous multi-axis mathematical reasoning',
+    organism: 'Continuous multi-axis blending of threat and food intent',
   },
   {
     feature: 'Transition Fidelity',
@@ -113,9 +114,10 @@ export default function BenchmarkDashboard() {
       {/* Floating header: title, live hint and controls, straight on the scene */}
       <header className={`${styles['fp-dashboard-header']} d-flex justify-content-between align-items-center gap-[var(--fp-space-md)] px-[var(--fp-space-md)]`}>
         <div className={`${styles['fp-dashboard-heading']} d-flex flex-column gap-[var(--fp-space-xxs)]`}>
-          <div className="d-flex align-items-center gap-[var(--fp-space-sm)]">
+          <div className={`${styles['fp-dashboard-title-row']} d-flex align-items-center gap-[var(--fp-space-sm)]`}>
             <span className={styles['fp-dashboard-icon']}><FishIcon /></span>
             <h1 className={styles['fp-dashboard-title']}>Fish in a Pond — Visual Telemetry Benchmark</h1>
+            <AiNotice kind="scripted" isShort />
           </div>
           <p
             className={styles['fp-dashboard-hint-ts']}
@@ -190,21 +192,21 @@ export default function BenchmarkDashboard() {
         <BenchmarkViewport
           caseType={BenchmarkCase.SYSTEM_0_REFLEX}
           title="Case 1: Programmed Reflex"
-          architectureSubtitle="Static Threshold Tree (Binary Snapping)"
+          architectureSubtitle="Static Threshold Tree (no AI)"
           badgeLabel="System 0"
           isHudHidden={isHudHidden}
         />
         <BenchmarkViewport
           caseType={BenchmarkCase.SYSTEM_1_LOTTERY}
           title="Case 2: Intuitive Preset Lottery"
-          architectureSubtitle="Laya-AI (System 1) + Dynamic Preset Lerp"
+          architectureSubtitle="Weighted Preset Lottery + Lerp (no AI)"
           badgeLabel="System 1"
           isHudHidden={isHudHidden}
         />
         <BenchmarkViewport
           caseType={BenchmarkCase.SYSTEM_2_DUAL_PROCESS}
           title="Case 3: Autonomous Organism"
-          architectureSubtitle="Dual-Process: System 1 Intent + ReasonLite Multi-Axis"
+          architectureSubtitle="Blended Threat / Food Intent (no AI)"
           badgeLabel="Dual-Process"
           isHudHidden={isHudHidden}
         />
@@ -241,7 +243,7 @@ export default function BenchmarkDashboard() {
           </table>
         </div>
         <p className={styles['fp-dashboard-note']}>
-          Fish Pond Benchmark Suite — Next.js 16 + Triforge + Strata CSS · Physical Safety Clamping: ACTIVE (all viewports)
+          Fish Pond Benchmark Suite — Next.js 16 + Triforge + Strata CSS · all three controllers are scripted code, no AI model · Physical Safety Clamping: ACTIVE (all viewports)
         </p>
       </aside>
 

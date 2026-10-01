@@ -42,3 +42,6 @@ next-env.d.ts
 
 # pre-commit hook marker
 /.claude/.pre-commit-declared
+
+# onnx runtime copied by scripts/copy-ort.ts
+/public/ort/

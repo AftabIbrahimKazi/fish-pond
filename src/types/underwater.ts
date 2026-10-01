@@ -1,5 +1,7 @@
 import type { Vector3 } from 'three';
 
+import type { LayaStatus } from './laya';
+
 /**
  * Shared types for the Underwater scene (Scene 03).
  */
@@ -53,6 +55,14 @@ export interface Temperament {
   depthOffset: number;
 }
 
+/** What Laya last decided for one fish. Probabilities are 0 until the first answer arrives. */
+export interface FishIntent {
+  danger: number;
+  eat: number;
+  hasAnswer: boolean;
+  ageSeconds: number;
+}
+
 /** One fish's simulation state. Position and velocity are mutated in place every frame. */
 export interface FishAgent {
   id: number;
@@ -63,7 +73,9 @@ export interface FishAgent {
   fleeDirection: Vector3;
   waypoint: Vector3;
   waypointAge: number;
-  dwell: number;
+  needsDestination: boolean;
+  hasEntered: boolean;
+  intent: FishIntent;
   entryDelay: number;
   feedPitch: number;
   heading: number;
@@ -80,6 +92,23 @@ export interface FishAgent {
 export interface CursorThreat {
   origin: Vector3;
   direction: Vector3;
+  /** Pointer travel in screen widths per second. */
+  speed: number;
+}
+
+/** What one fish senses right now, in the units the model is told about (centimetres, 0 to 1 scales). */
+export interface FishPerception {
+  handCentimetres: number | null;
+  handSpeed: number;
+  foodCentimetres: number | null;
+  appetite: number;
+  panic: number;
+}
+
+/** One place a fish could swim to, with a plain description for the model. */
+export interface DestinationCandidate {
+  position: Vector3;
+  description: string;
 }
 
 /** A read-only snapshot of one fish for the on-screen behaviour readout. */
@@ -90,6 +119,7 @@ export interface FishTelemetry {
   mode: FishMode;
   isEntering: boolean;
   isResting: boolean;
+  intent: FishIntent;
   isEating: boolean;
   speed: number;
   depth: number;
@@ -98,9 +128,23 @@ export interface FishTelemetry {
   waypointDistance: number;
 }
 
+/** What the hover tooltip shows: which fish it is and what it is doing right now. */
+export interface FishFocusInfo {
+  id: number;
+  label: string;
+  temperament: string;
+  mode: FishMode;
+  isEntering: boolean;
+  isEating: boolean;
+  isWaitingForDestination: boolean;
+}
+
 export interface UnderwaterEngineCallbacks {
   onLoadStateChange: (state: UnderwaterLoadState) => void;
   onFishTelemetry: (fish: FishTelemetry[]) => void;
+  onAiStatusChange: (status: LayaStatus, downloadFraction: number, decisionMs: number) => void;
+  onFishFocus: (info: FishFocusInfo | null) => void;
+  onFishFocusMove: (x: number, y: number) => void;
 }
 
 /** Every graphics value the settings sidebar can tune. Defaults live in `underwater-settings.ts`. */

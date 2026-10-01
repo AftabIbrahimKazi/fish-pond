@@ -47,6 +47,7 @@ import {
 import {
   CursorThreat,
   FishAgent,
+  FishFocusInfo,
   FishMode,
   FishTelemetry,
   SceneSettings,
@@ -57,6 +58,7 @@ import { buildSeededRandom } from '../prng';
 import { buildDomeMaterial, buildFishShadowMaterial, buildLightShaftMaterial, buildWaterSurfaceMaterial } from './atmosphere-materials';
 import { FishBodyAnimation } from './fish-body-animation';
 import { FishModelLoader, FishTemplate } from './fish-loader';
+import { FishIntentController } from './ai/fish-intent-controller';
 import { FishSchoolController } from './fish-school-controller';
 import { FoodPelletSimulation } from './food-pellet-simulation';
 import { HeightSampler, buildRockGeometry, buildSeabedGeometry, buildTerrainSampler } from './scene-geometry';
@@ -137,6 +139,14 @@ const QUARTER_TURN = Math.PI / 2;
 const TWO_PI = Math.PI * 2;
 const HALF = 0.5 as const;
 const NDC_SPAN = 2 as const;
+const MIN_FRAME_SECONDS = 1e-3 as const;
+const NO_FOCUS = -1 as const;
+const TOOLTIP_SECONDS = 4 as const;
+const FOCUS_INFO_INTERVAL = 0.25 as const;
+const HOVER_MIN_RADIUS_PX = 34 as const;
+const HOVER_RADIUS_FACTOR = 0.55 as const;
+const TOOLTIP_LIFT_FACTOR = 0.45 as const;
+const CURSOR_SPEED_SMOOTHING = 0.2 as const;
 const WIDE_ASPECT = 1.6 as const;
 const NARROW_PULLBACK = 0.55 as const;
 const DOME_WIDTH_SEGMENTS = 48 as const;
@@ -223,6 +233,10 @@ export class UnderwaterEngine {
   private _agents: FishAgent[] = [];
   private _bodies: FishBodyAnimation[] = [];
   private _school: FishSchoolController | null = null;
+  private _intent: FishIntentController | null = null;
+  private readonly _focus = { id: NO_FOCUS as number, hideAt: 0, infoClock: 0, isDirty: false };
+  private readonly _focusPoint = new Vector3();
+  private _isAiWanted = false;
   private _pellets: FoodPelletSimulation | null = null;
   private _sun: DirectionalLight | null = null;
   private _rim: DirectionalLight | null = null;
@@ -240,8 +254,8 @@ export class UnderwaterEngine {
   private readonly _ndc = new Vector2();
   private readonly _foodPlane = new Plane(new Vector3(0, 0, 1), -FOOD_PLANE_Z);
   private readonly _dropPoint = new Vector3();
-  private readonly _cursorThreat: CursorThreat = { origin: new Vector3(), direction: new Vector3() };
-  private readonly _cursor = { x: 0, y: 0, isActive: false };
+  private readonly _cursorThreat: CursorThreat = { origin: new Vector3(), direction: new Vector3(), speed: 0 };
+  private readonly _cursor = { x: 0, y: 0, isActive: false, previousX: 0, previousY: 0, speed: 0 };
   private _shadows: Mesh[] = [];
   private _resizeObserver: ResizeObserver | null = null;
   private _visibilityObserver: IntersectionObserver | null = null;
@@ -300,6 +314,7 @@ export class UnderwaterEngine {
     window.removeEventListener('blur', this._onWindowBlur);
     this._canvas.removeEventListener('pointerdown', this._onPointerDown);
     this._bodies.forEach((body) => body.destroy());
+    this._intent?.destroy();
     this._pellets?.destroy();
     this._seagrass?.destroy();
     this._compositor?.dispose();
@@ -312,6 +327,21 @@ export class UnderwaterEngine {
     this._scene = null;
     this._camera = null;
     this._compositor = null;
+  }
+
+  /** Shows the tooltip for one fish for a few seconds (used when its readout is hovered). */
+  public focusFish(id: number): void {
+    this._focus.id = id;
+    this._focus.hideAt = this._elapsed + TOOLTIP_SECONDS;
+    this._focus.isDirty = true;
+  }
+
+  /** Switches Laya-AI on or off. Off, the fish make no decisions and only drift. */
+  public setAiEnabled(isEnabled: boolean): void {
+    this._isAiWanted = isEnabled;
+    if (!this._intent) return;
+    if (isEnabled) void this._intent.enable();
+    else this._intent.disable();
   }
 
   /** Keys held down by the on-screen touch pads; they act exactly like the matching keyboard keys. */
@@ -741,7 +771,16 @@ export class UnderwaterEngine {
         this._shadows.push(shadow);
       }
     });
-    this._school = new FishSchoolController(this._agents, pellets, sampleHeight);
+    const school = new FishSchoolController(this._agents, pellets, sampleHeight);
+    this._school = school;
+    this._intent = new FishIntentController(
+      this._agents,
+      (agent, threat) => school.getPerception(agent, threat),
+      (agent) => school.getDestinationCandidates(agent),
+      (agent, candidate) => school.setDestination(agent, candidate),
+      this._callbacks.onAiStatusChange,
+    );
+    if (this._isAiWanted) void this._intent.enable();
     this._bodies.forEach((body) => body.update(0));
   }
 
@@ -780,7 +819,9 @@ export class UnderwaterEngine {
       fleeDirection: new Vector3(0, 0, 1),
       waypoint,
       waypointAge: 0,
-      dwell: 0,
+      needsDestination: false,
+      hasEntered: false,
+      intent: { danger: 0, eat: 0, hasAnswer: false, ageSeconds: 0 },
       entryDelay,
       feedPitch: 0,
       heading,
@@ -929,7 +970,9 @@ export class UnderwaterEngine {
     const school = this._school;
     if (!sampleHeight || !school) return;
     this._pellets?.update(deltaSeconds);
-    school.update(deltaSeconds, this._elapsed, this._getCursorThreat());
+    const threat = this._getCursorThreat(deltaSeconds);
+    this._intent?.update(deltaSeconds, threat);
+    school.update(deltaSeconds, this._elapsed, threat);
 
     this._agents.forEach((agent, index) => {
       this._bodies[index].update(deltaSeconds);
@@ -946,6 +989,70 @@ export class UnderwaterEngine {
     });
   }
 
+  /** The fish under the pointer on screen, found by projecting each fish and comparing in pixels. */
+  private _findHoveredFish(camera: PerspectiveCamera, width: number, height: number): FishAgent | null {
+    if (!this._cursor.isActive) return null;
+    const halfFov = MathUtils.degToRad(camera.fov) * HALF;
+    let best: FishAgent | null = null;
+    let bestDistance = Infinity;
+    for (const agent of this._agents) {
+      if (agent.entryDelay > 0) continue;
+      this._focusPoint.copy(agent.position).project(camera);
+      if (this._focusPoint.z > 1) continue;
+      const deltaX = (this._focusPoint.x - this._cursor.x) * width * HALF;
+      const deltaY = (this._focusPoint.y - this._cursor.y) * height * HALF;
+      const pointerDistance = Math.hypot(deltaX, deltaY);
+      const sizePixels = (agent.profile.targetLength * height) / (NDC_SPAN * Math.max(camera.position.distanceTo(agent.position), MIN_FRAME_SECONDS) * Math.tan(halfFov));
+      if (pointerDistance < Math.max(HOVER_MIN_RADIUS_PX, sizePixels * HOVER_RADIUS_FACTOR) && pointerDistance < bestDistance) {
+        best = agent;
+        bestDistance = pointerDistance;
+      }
+    }
+    return best;
+  }
+
+  /** Keeps the hover tooltip on the focused fish: position every frame, content a few times a second. */
+  private _updateFocus(deltaSeconds: number): void {
+    const camera = this._camera;
+    const width = this._canvas.clientWidth;
+    const height = this._canvas.clientHeight;
+    if (!camera || width === 0 || height === 0) return;
+    camera.updateMatrixWorld();
+    const hovered = this._findHoveredFish(camera, width, height);
+    if (hovered && hovered.id !== this._focus.id) this.focusFish(hovered.id);
+    else if (hovered) this._focus.hideAt = this._elapsed + TOOLTIP_SECONDS;
+    const focus = this._focus;
+    if (focus.id === NO_FOCUS) return;
+    const agent = this._agents.find((entry) => entry.id === focus.id);
+    if (!agent || this._elapsed >= focus.hideAt) {
+      focus.id = NO_FOCUS;
+      this._callbacks.onFishFocus(null);
+      return;
+    }
+    this._focusPoint.copy(agent.position);
+    this._focusPoint.y += agent.profile.targetLength * TOOLTIP_LIFT_FACTOR;
+    this._focusPoint.project(camera);
+    this._callbacks.onFishFocusMove((this._focusPoint.x + 1) * HALF * width, (1 - this._focusPoint.y) * HALF * height);
+    focus.infoClock += deltaSeconds;
+    if (focus.isDirty || focus.infoClock >= FOCUS_INFO_INTERVAL) {
+      focus.isDirty = false;
+      focus.infoClock = 0;
+      this._callbacks.onFishFocus(this._buildFocusInfo(agent));
+    }
+  }
+
+  private _buildFocusInfo(agent: FishAgent): FishFocusInfo {
+    return {
+      id: agent.id,
+      label: agent.profile.label,
+      temperament: agent.temperament.label,
+      mode: agent.mode,
+      isEntering: agent.entryDelay > 0,
+      isEating: agent.gulp > 0,
+      isWaitingForDestination: agent.needsDestination,
+    };
+  }
+
   /** A few times a second, hands the UI a plain snapshot of every fish's state. */
   private _updateTelemetry(deltaSeconds: number): void {
     this._telemetryClock += deltaSeconds;
@@ -957,7 +1064,8 @@ export class UnderwaterEngine {
       temperament: agent.temperament.label,
       mode: agent.mode,
       isEntering: agent.entryDelay > 0,
-      isResting: agent.dwell > 0,
+      isResting: agent.needsDestination,
+      intent: { ...agent.intent },
       isEating: agent.gulp > 0,
       speed: agent.velocity.length(),
       depth: agent.position.y,
@@ -980,9 +1088,17 @@ export class UnderwaterEngine {
     sun.intensity = this._sunBaseIntensity * (1 + flicker * this._settings.dappleAmount);
   }
 
-  private _getCursorThreat(): CursorThreat | null {
+  private _getCursorThreat(deltaSeconds: number): CursorThreat | null {
     const camera = this._camera;
-    if (!camera || !this._cursor.isActive) return null;
+    const cursor = this._cursor;
+    const travel = Math.hypot(cursor.x - cursor.previousX, cursor.y - cursor.previousY) / NDC_SPAN;
+    cursor.speed = MathUtils.lerp(cursor.speed, travel / Math.max(deltaSeconds, MIN_FRAME_SECONDS), CURSOR_SPEED_SMOOTHING);
+    cursor.previousX = cursor.x;
+    cursor.previousY = cursor.y;
+    if (!camera || !cursor.isActive) return null;
+    // navigation moves and turns the camera after the last render, so refresh its matrices before casting the ray
+    camera.updateMatrixWorld();
+    this._cursorThreat.speed = cursor.speed;
     this._raycaster.setFromCamera(this._ndc.set(this._cursor.x, this._cursor.y), camera);
     this._cursorThreat.origin.copy(this._raycaster.ray.origin);
     this._cursorThreat.direction.copy(this._raycaster.ray.direction);
@@ -1005,6 +1121,7 @@ export class UnderwaterEngine {
     this._seagrass?.update(this._elapsed, this._settings.seagrassSwaySpeed, this._settings.seagrassSwayAmplitude);
     this._updateParticles(deltaSeconds);
     this._updateFish(deltaSeconds);
+    this._updateFocus(deltaSeconds);
     this._updateLighting();
     this._updateTelemetry(deltaSeconds);
     this._compositor?.render();

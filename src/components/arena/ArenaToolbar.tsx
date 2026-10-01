@@ -7,6 +7,7 @@
 import React from 'react';
 import Link from 'next/link';
 
+import { AiNotice } from '../AiNotice';
 import { GlassSelect, GlassSelectOption } from '../GlassSelect';
 import { ArrowLeftIcon, PauseIcon, PlayIcon, ResetIcon } from '../HudIcons';
 
@@ -45,14 +46,17 @@ export const ArenaToolbar: React.FC<ArenaToolbarProps> = ({
 }) => {
   return (
     <header
-      className={`${styles['fp-arena-toolbar']} d-flex align-items-center justify-content-between gap-[var(--fp-space-sm)] px-[var(--fp-space-md)] py-[var(--fp-space-sm)]`}
+      className={`${styles['fp-arena-toolbar']} position-absolute d-flex align-items-center justify-content-between gap-[var(--fp-space-sm)] px-[var(--fp-space-md)] py-[var(--fp-space-sm)]`}
     >
       <div className="d-flex align-items-center gap-[var(--fp-space-md)]">
         <Link href="/" className={`${styles['fp-arena-button']} ${BUTTON_LAYOUT}`} aria-label="Home">
           <ArrowLeftIcon />
           <span className={styles['fp-arena-button-label']}>Home</span>
         </Link>
-        <h1 className={styles['fp-arena-title']}>Cognitive Arena</h1>
+        <div className="d-flex flex-column">
+          <h1 className={styles['fp-arena-title']}>Cognitive Arena</h1>
+          <AiNotice kind="scripted" isShort />
+        </div>
       </div>
 
       <div className="d-flex align-items-center gap-[var(--fp-space-sm)]">

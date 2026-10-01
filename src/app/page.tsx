@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { AiNotice, AiNoticeKind } from '../components/AiNotice';
 import { ArrowRightIcon } from '../components/HudIcons';
 import { LandingBackdrop } from '../components/landing/LandingBackdrop';
 import { JsonLd } from '../components/seo/JsonLd';
@@ -16,6 +17,7 @@ interface ExperimentLink {
   title: string;
   summary: string;
   cta: string;
+  notice: AiNoticeKind | null;
 }
 
 const EXPERIMENT_LINKS: ExperimentLink[] = [
@@ -23,29 +25,33 @@ const EXPERIMENT_LINKS: ExperimentLink[] = [
     href: '/arena',
     order: '01',
     title: 'Cognitive Arena',
-    summary: 'One fish, one wide pond. Instinct (System 1) reacts in a heartbeat; deliberation (System 1 + 2) investigates the unknown. When they conflict, instinct wins.',
+    summary: 'One fish, one wide pond. Instinct (System 1) reacts in a heartbeat; deliberation (System 1 + 2) investigates the unknown. When they conflict, instinct wins. Both are simulated in code.',
     cta: 'Enter the arena',
+    notice: 'scripted',
   },
   {
     href: '/benchmark',
     order: '02',
     title: 'Visual Telemetry Benchmark',
-    summary: 'Three ponds side by side: programmed reflex, preset lottery and dual-process reasoning, fed identical inputs.',
+    summary: 'Three ponds side by side: programmed reflex, preset lottery and blended intent, all plain code fed identical inputs.',
     cta: 'Open the benchmark',
+    notice: 'scripted',
   },
   {
     href: '/underwater',
     order: '03',
     title: 'Underwater',
-    summary: 'A realistic underwater scene: caustics, light shafts, water absorption and two real goldfish models, all shaded and graded with Triforge.',
+    summary: 'A realistic underwater scene shaded with Triforge. Enable Laya-AI, an open model that runs in your browser, and it decides what each goldfish does.',
     cta: 'Dive in',
+    notice: 'model',
   },
   {
     href: '/docs',
     order: '04',
     title: 'Documentation',
-    summary: 'Everything about how Fish Pond works: the fish AI systems, the Triforge shader pipeline, controls, the settings workflow and the design system.',
+    summary: 'Everything about how Fish Pond works: which parts use AI and which are scripted, the Triforge shader pipeline, controls, settings and the design system.',
     cta: 'Read the docs',
+    notice: null,
   },
 ];
 
@@ -70,6 +76,7 @@ export default function LandingPage() {
             <span className={styles['fp-landing-order']}>{link.order}</span>
             <h2 className={styles['fp-landing-card-title']}>{link.title}</h2>
             <p className={styles['fp-landing-card-summary']}>{link.summary}</p>
+            {link.notice && <AiNotice kind={link.notice} isShort />}
             <span className={`${styles['fp-landing-cta']} d-inline-flex align-items-center gap-[var(--fp-space-xs)]`}>
               {link.cta}
               <ArrowRightIcon />

@@ -21,6 +21,10 @@
   min-width: 0;
 }
 
+.fp-dashboard-title-row {
+  min-width: 0;
+}
+
 .fp-dashboard-controls {
   flex-shrink: 0;
 }
@@ -268,6 +272,10 @@
   .fp-dashboard-title,
   .fp-dashboard-hint-ts {
     white-space: normal;
+  }
+
+  .fp-dashboard-title-row {
+    flex-wrap: wrap;
   }
 
   .fp-dashboard-grid {
