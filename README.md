@@ -11,7 +11,7 @@ A scripted cognitive arena, a scripted three-way controller benchmark and a real
 [![Live demo](https://img.shields.io/badge/live%20demo-fish--pond--mu.vercel.app-0a2a33?style=for-the-badge&logo=vercel&logoColor=white)](https://fish-pond-mu.vercel.app)
 [![Documentation](https://img.shields.io/badge/docs-read%20online-1f7a8c?style=for-the-badge)](https://fish-pond-mu.vercel.app/docs)
 
-![Version](https://img.shields.io/badge/version-0.2.1-f59e0b)
+![Version](https://img.shields.io/badge/version-0.3.0-f59e0b)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
