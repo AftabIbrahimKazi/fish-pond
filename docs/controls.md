@@ -4,7 +4,9 @@
 
 | Input | Action |
 |---|---|
-| Mouse move | Camera parallax. Fish close to the cursor ray flee. |
+| Mouse move | Camera parallax. The cursor is the hand Laya-AI judges: fish flee when the model says a hand is next to them (needs Laya-AI enabled). |
+| Hover a fish (or its readout block on the right) | An arrow label with the fish's marker, name and state follows it for about 4 seconds, and its readout block scales up. |
+| Enable Laya-AI chip | Download and start the model (about 524 MB, cached); click again to switch it off. |
 | Click or tap the water | Drop fish food (26 pellets). |
 | `W` `S` | Move forward and back along the current heading. |
 | `A` `D` | Strafe left and right. |

@@ -1,5 +1,18 @@
 # Handover — fish-pond
-Updated: 2026-09-30 (Scene 03 complete for 3D; UI overhaul next) · Repo pushed · Branch: main (pushed)
+Updated: 2026-10-02 (Laya-AI drives the underwater fish; Arena and Benchmark labelled as scripted) · Branch: main (Laya work uncommitted)
+
+## Laya-AI for the underwater fish (2026-10-02, uncommitted)
+**Rule from the owner: decisions must come from the AI model; no coded fallback for decisions** (memory: ai-decisions-only). Arena and Benchmark stay scripted and are labelled "no AI" (`AiNotice` component, landing cards, benchmark page, arena toolbar, docs, SEO copy, `llms.txt`).
+- **What it is:** the Laya System 1 decision model (8-bit browser build `nvkudva/laya-web-q8`, ~524 MB, fetched from Hugging Face by the browser and cached in the Cache API) runs in a Web Worker with ONNX Runtime Web (wasm, threaded). Code is ported from `github.com/nvkudva/laya-web` (no licence file; owner chose to use it with credit; credited in README, docs page, docs/fish-ai.md, humans.txt, llms.txt; see memory laya-runtime-credit).
+- **Where:** `src/simulation/underwater/ai/` (`laya-inference-engine`, `laya-sequence` (token-for-token with the author's fixtures, 26/26), `laya-postprocess`, `laya-tokenizer-loader`, `laya-worker`, `laya-worker-controller`, `fish-perception-text`, `fish-intent-controller`, constants). Types in `src/types/laya.ts`. `fish-school-controller.ts` is now motor control only.
+- **Decisions the model makes:** flee (yes/no "A human hand is next to the goldfish"), eat (yes/no "The fish should go and eat the food now") and where to swim (choice of 4 described spots, shuffled). Acted on at >= 0.5; answers go stale after 8 s. Questions are only asked when they apply (hand near / food near); a fish with a hand near is asked first; destination requests alternate with intent requests.
+- **Hover tooltip:** `UnderwaterEngine._updateFocus` projects each fish to the screen, picks the one under the pointer (or the one whose readout is hovered, via `focusFish`) and reports its screen position every frame (`onFishFocusMove`, applied by `FishTooltip.place` as CSS variables, the one deliberate use of inline style) and its state a few times a second (`onFishFocus`). Label shows marker, name, state only; the matching readout block scales (`data-focus`). **Camera bug fix:** `_getCursorThreat` now calls `camera.updateMatrixWorld()` before the ray; before that, after WASD or arrow navigation the pointer ray no longer matched the fish under the pointer.
+- **Opt-in chip** "Enable Laya-AI" in `UnderwaterStage` (remembered in `localStorage` key `fp-laya-enabled`). With the model off, fish only drift (landing backdrop too). Status, download progress and time per decision shown; readout shows Laya flee/eat percentages.
+- **Infra:** `scripts/copy-ort.ts` (postinstall, needs Node >= 22.6) copies the ORT wasm to `public/ort/` (gitignored); `next.config.ts` sends COOP/COEP (`require-corp`) on every route; tank-wall hard clamp in `_clampToTank` (fish had escaped to 200 m once flee became sustained).
+- **Measured (headless Chrome, AMD Radeon, 16 threads, dev and production build):** model loads in ~5 s when cached, 200 s first time; flee decision ~0.7 s (single question, hand-near fish are asked first and nearest first); first fish flees 1.1 to 1.9 s after the pointer enters; eat and destination ~1.2 s; 31 to 44 fps with the model running; production build runs the threaded worker without the hang the laya-web author saw.
+- **Model limits found by testing (documented in docs/fish-ai.md):** eat is reliable (86 to 93%); danger by distance is NOT learnable by either published checkpoint (base or typed-decisions); only closeness in place words works ("right next to the goldfish" 76 to 80%, "far across the tank" 3 to 31%); the sentence "I see no hand." in the eat state is load-bearing; multiple-choice is biased to the first option; wording changes swing answers. Wording is fixed in `fish-perception-text.ts`: re-test before changing it.
+- **Test rig (not in the repo):** puppeteer-core driving system Chrome; use a SHORT profile path such as `C:/cfp` (long Windows paths break the Cache API); flags `--enable-gpu --use-angle=d3d11` for real GPU; send a synthetic `pointermove` with negative coordinates to release the cursor.
+- **Not done / next:** schooling (would need the model choosing nearby spots), a System 2 / ReasonLite layer (not implemented; no ONNX export exists), memory measurement during load (estimated 1 to 2 GB), mobile devices, Open Graph images still show the old subtitles, version bump and commit (versioning standard: bump at push time only; changelog is under `[Unreleased]`).
 
 ## Current state
 Next.js 16.3.7 + Three.js + Strata CSS app with four routes: `/` landing (3 cards), `/arena` (Cognitive Arena), `/benchmark` (original 3-case benchmark), `/underwater` (Scene 03, new). `tsc --noEmit`, `eslint src` and `npm run build` pass. All experiments were checked in headless Chrome (software rendering) at desktop and 390 px; not yet checked on a real GPU.
@@ -46,12 +59,10 @@ Landing now runs the Underwater scene as a fixed backdrop (`src/components/landi
 ## Scene 03 — Underwater (`/underwater`)
 **Scene (Triforge only, no hand-written GLSL):** `@triforge/shader-core` node graphs for seabed, rocks, seagrass, backdrop dome, mirror water surface (Snell's window), light shafts and fish contact shadows; `@triforge/compositor-core` for Bloom, ColorBalance, HueSaturation, Vignette, FilmGrain. Pointer parallax moves camera and look target; adaptive pixel ratio steps down 0.25 when frames exceed 27 ms.
 
-**Fish (System 1 only):**
+**Fish (Laya-AI decides; see the section above):**
 - Population: 1 big Jikin + 2 small Tosakin (`SPECIES_PROFILES` counts). Real GLBs are loaded once as templates and cloned; head/up axes are detected from eye and dorsal-fin meshes (`fish-orientation.ts`).
-- Personality: `TEMPERAMENTS` (calm elder, bold forager, shy follower) scale boldness, greed, sociability, speed, wander rate and depth.
-- `fish-school-controller.ts` priority: cursor threat > food > social > path following. The cursor is a ray; only fish near it flee (radius scales with size and boldness).
-- Path picking: each fish scores random spots by taste (cover vs open, mates, trip length, crowding), swims there in wide curves with swim-glide speed variation, dwells 1-3 s, repeats.
-- Social: same species school loosely; small fish avoid the big one and yield food to it.
+- Personality: `TEMPERAMENTS` (calm elder, bold forager, shy follower) now only scale speed, wander rate and depth; the label goes into the destination question. Boldness, greed and sociability are unused (the model decides those things).
+- `fish-school-controller.ts` is motor control: it follows the destination Laya chose, flees along the away-from-cursor direction when Laya says flee, seeks food when Laya says eat, keeps personal space, stays in the tank and collides with seabed and rocks. It also builds the perception numbers and candidate spots the model is asked about.
 - Entrance: fish spawn beyond the frame (`ENTRY_EDGE_X`), on alternating left/right edges chosen at random each visit, with shuffled staggered `ENTRY_DELAYS`; y/z and first destination are random (`Math.random`, so `SPAWN_SEED` is unused).
 - Food: click drops a 26-pellet cluster (`food-pellet-simulation.ts`, InstancedMesh, drag-limited sinking, drift, settle, dissolve after 34 s). Ground pellets trigger a head-down nibble (`feedPitch`, bobbing `gulp`).
 - Collision: nose/middle/tail vs seabed, rock ellipsoids, fish-vs-fish push-apart.
@@ -83,12 +94,12 @@ Landing now runs the Underwater scene as a fixed backdrop (`src/components/landi
 - Naming rules not applied: `create*` factory verbs (TS-N-03) and boolean fields such as `threatActive`/`foodActive` without `is`/`has` (TS-N-05). Renaming touches shared types.
 - Typography, colour and border styling are in CSS Modules, not Strata utilities (partial SC-01 compliance).
 - No keyboard way to steer the benchmark threat; the arena is keyboard-operable.
-- `@triforge/*` and `onnxruntime-web` are installed but unused; benchmark copy still mentions Triforge.
+- `@triforge/*` is installed but unused; benchmark copy still mentions Triforge. `onnxruntime-web` and `@huggingface/tokenizers` are used by the Laya layer.
 - `npm run lint` errors only in `ai-dev-kit/` and `coding-standards/tooling/`.
 
 ## Next steps
 1. `npm run dev`, then try all three experiments on a real GPU (Scene 03 frame rate and fish behaviour at real speed first).
-2. Scene 03 next: System 2 (deliberation) for the fish, more nibble/feeding animation polish, optional keyboard access for feeding.
+2. Scene 03 next: commit the Laya work (version bump + changelog at push time), measure memory and behaviour on a real phone, consider schooling via model-chosen spots, System 2 reasoning (ReasonLite has no ONNX export), more nibble/feeding animation polish.
 3. Tune arena stimuli and behaviour from what you see (shadow visibility, timings, habituation to known stimuli is not modelled).
 4. Decide on the naming renames and unused dependencies.
 5. Commit in stages (bugs, TS, CSS, landing, arena, docs) after loading `git-standards.md`.

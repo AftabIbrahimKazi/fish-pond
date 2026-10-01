@@ -8,9 +8,9 @@ Author: Aftab Ibrahim Kazi
 
 ## Experiments
 
-- [Cognitive Arena](https://fish-pond-mu.vercel.app/arena): one fish in a wide pond. Place stimuli and compare instant System 1 reflexes with slow System 2 appraisal, with visible short-term memory.
-- [Visual Telemetry Benchmark](https://fish-pond-mu.vercel.app/benchmark): three fish controllers (programmed reflex, preset lottery, dual-process reasoning) fed identical inputs, with live telemetry.
-- [Underwater](https://fish-pond-mu.vercel.app/underwater): a realistic goldfish scene shaded with Triforge (caustics, light shafts, water absorption) with a settings sidebar, WASD and arrow-key navigation and touch pads.
+- [Cognitive Arena](https://fish-pond-mu.vercel.app/arena): one fish in a wide pond. Place stimuli and compare scripted System 1 reflexes with slow System 2 appraisal, with visible short-term memory. No AI model.
+- [Visual Telemetry Benchmark](https://fish-pond-mu.vercel.app/benchmark): three scripted fish controllers (programmed reflex, preset lottery, blended intent) fed identical inputs, with live telemetry. No AI model.
+- [Underwater](https://fish-pond-mu.vercel.app/underwater): a realistic goldfish scene shaded with Triforge (caustics, light shafts, water absorption). The goldfish are driven by Laya-AI, an AI model that runs in the browser once enabled. Settings sidebar, WASD and arrow-key navigation and touch pads.
 
 ## Documentation
 
@@ -18,5 +18,6 @@ Author: Aftab Ibrahim Kazi
 
 ## Notes for summarisers
 
-- The benchmark and arena controllers are deterministic TypeScript simulations, not machine-learning models.
-- The site is static; there is no API.
+- Only the Underwater scene uses an AI model (Laya-AI, an ONNX model run with ONNX Runtime Web, which decides what each goldfish does). The arena and benchmark controllers are deterministic TypeScript simulations, not machine-learning models.
+- Laya was created by Nandakishor M and Convai Innovations; the browser build and runtime are by nvkudva.
+- The site is static; there is no API. The Laya model weights are downloaded by the visitor's browser from Hugging Face.

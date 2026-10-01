@@ -27,7 +27,8 @@ Route (src/app/*/page.tsx)           server component, metadata, JSON-LD
 | `scene-geometry.ts` | Seabed, rocks and the terrain height sampler |
 | `seagrass-animation.ts` | One merged, CPU-bent blade mesh |
 | `fish-loader.ts`, `fish-orientation.ts` | Load the GLB templates and detect head and up axes |
-| `fish-school-controller.ts` | Steering, path picking, social rules, food and collisions |
+| `fish-school-controller.ts` | Motor control only: steering, flee direction, personal space, tank walls, food contact, collisions; describes the world to the model |
+| `ai/` | Laya-AI: inference engine, worker, sequence builder, perception wording, `fish-intent-controller.ts` (the fish's decisions) |
 | `fish-body-animation.ts` | Body bend, roll and nibble animation |
 | `food-pellet-simulation.ts` | Instanced pellets: drop, sink, settle, dissolve |
 | `underwater-settings.ts` | `SCENE_DEFAULTS`, slider definitions, JSON export |
@@ -36,7 +37,7 @@ Route (src/app/*/page.tsx)           server component, metadata, JSON-LD
 ### Frame loop
 
 1. Update the camera (automatic drift and parallax, then keyboard or touch navigation on top).
-2. Update seagrass, marine snow and the fish simulation.
+2. Update seagrass, marine snow, the fish intent controller (asks Laya the next question) and the fish motor simulation.
 3. Update sun dappling and emit fish telemetry at 4 Hz.
 4. Render through the Triforge compositor.
 5. Sample frame time and step the pixel ratio down if frames are slow.
@@ -51,7 +52,18 @@ Route (src/app/*/page.tsx)           server component, metadata, JSON-LD
 
 Triforge sun and ambient light uniforms are scaled from fixed reference intensities (`TRIFORGE_*_REFERENCE_INTENSITY`), so changing the defaults never re-brightens the shaded surfaces.
 
-## Arena and benchmark
+### Laya-AI layer
+
+```text
+FishIntentController (main thread)   describes a fish's situation, picks whom to ask, records answers on the fish
+  └─ LayaWorkerController            request ids, progress callbacks
+       └─ laya-worker.ts (Web Worker)
+            └─ LayaInferenceEngine   tokenise → encoder (int8) → head → temperature softmax (ONNX Runtime Web, wasm threads)
+```
+
+The engine fetches `encoder_q8` and `head_q8` from Hugging Face (about 524 MB, cached in the Cache API). `FishSchoolController` reads `agent.intent` (flee and eat probabilities) and the chosen destination; it never produces them. The flow and the wording research are in [fish-ai.md](fish-ai.md).
+
+## Arena and benchmark (scripted, no AI)
 
 - `src/simulation/arena/` holds System 1 reflexes, the System 2 appraiser, the arbiter, fish memory, stimuli, scenarios and the world.
 - `src/simulation/controllers/` holds the three benchmark controllers.

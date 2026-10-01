@@ -23,6 +23,13 @@ export const DOC_SECTIONS: readonly DocSection[] = [
           Fish Pond is a set of browser experiments about how an artificial fish can decide what to do. It is built with Next.js, TypeScript,
           Three.js and Triforge shader graphs, and runs entirely in the browser: there is no backend, no account and no tracking.
         </p>
+        <aside data-callout="note">
+          <p>
+            <strong>Where the AI is.</strong> Only the Underwater scene uses an AI model: Laya-AI, an open System 1 decision model that runs in your
+            browser once you enable it, decides what each goldfish does. The Cognitive Arena and the Visual Telemetry Benchmark are scripted
+            simulations written in TypeScript. They use no AI model, and the interface says so.
+          </p>
+        </aside>
         <table>
           <caption>The four routes</caption>
           <thead>
@@ -30,9 +37,9 @@ export const DOC_SECTIONS: readonly DocSection[] = [
           </thead>
           <tbody>
             <tr><td>/</td><td>Landing page over the live underwater scene</td><td>Open an experiment; click the water to feed the fish</td></tr>
-            <tr><td>/arena</td><td>Cognitive Arena: one fish, instinct versus deliberation</td><td>Place stimuli, pause, change speed, inspect the fish mind</td></tr>
-            <tr><td>/benchmark</td><td>Visual Telemetry Benchmark: three controllers, identical inputs</td><td>Steer a threat with the cursor, drop food, run the test cycle</td></tr>
-            <tr><td>/underwater</td><td>A realistic goldfish scene with a full settings sidebar</td><td>Feed, fly with WASD and arrows, tune about 60 graphics settings</td></tr>
+            <tr><td>/arena</td><td>Cognitive Arena: one fish, instinct versus deliberation (scripted, no AI)</td><td>Place stimuli, pause, change speed, inspect the fish mind</td></tr>
+            <tr><td>/benchmark</td><td>Visual Telemetry Benchmark: three scripted controllers, identical inputs (no AI)</td><td>Steer a threat with the cursor, drop food, run the test cycle</td></tr>
+            <tr><td>/underwater</td><td>A realistic goldfish scene whose fish are driven by Laya-AI, with a full settings sidebar</td><td>Enable Laya-AI, feed, fly with WASD and arrows, tune about 60 graphics settings</td></tr>
           </tbody>
         </table>
         <p>
@@ -46,9 +53,15 @@ export const DOC_SECTIONS: readonly DocSection[] = [
   {
     id: 'arena',
     title: 'Cognitive Arena',
-    summary: 'Instinct (System 1) versus deliberation (System 1+2) in one fish.',
+    summary: 'Instinct (System 1) versus deliberation (System 1+2) in one fish. Scripted, no AI model.',
     content: (
       <>
+        <aside data-callout="note">
+          <p>
+            <strong>No AI model.</strong> System 1 and System 2 here are scripted code (a seeded lottery and a state machine), written to illustrate the
+            idea of dual-process thinking. Nothing in this experiment is machine learning.
+          </p>
+        </aside>
         <p>
           The arena places a single fish in a wide pond (32 by 16 units, 7 tall). You place stimuli; the fish either reacts instantly from
           instinct or investigates slowly. The point is to make the difference between the two modes of thought visible.
@@ -109,7 +122,7 @@ export const DOC_SECTIONS: readonly DocSection[] = [
   {
     id: 'benchmark',
     title: 'Visual Telemetry Benchmark',
-    summary: 'Three controllers, one set of inputs, compared live.',
+    summary: 'Three scripted controllers, one set of inputs, compared live. No AI model.',
     content: (
       <>
         <p>
@@ -128,13 +141,13 @@ export const DOC_SECTIONS: readonly DocSection[] = [
               <td>States IDLE, DART and APPROACH. A threat inside 7 units triggers a dart; food inside 10 units triggers an approach. A dart holds for at least 0.9 s. Transitions are instant, so motion snaps.</td>
             </tr>
             <tr>
-              <td>2 · System 1, preset lottery</td>
+              <td>2 · Preset lottery (scripted)</td>
               <td>Weighted lottery over designer presets</td>
               <td>Presets Glide, Startle-Dart, Curious-Hover and Anxious-Freeze are chosen by probability, then blended with smoothing so the fish keeps momentum.</td>
             </tr>
             <tr>
-              <td>3 · Dual-process organism</td>
-              <td>Continuous multi-axis reasoning</td>
+              <td>3 · Blended intent (scripted)</td>
+              <td>Continuous multi-axis blending</td>
               <td>No presets. Threat and food intents (ranges 14 and 16 units) drive spine curve, tail frequency and fin resistance continuously. When threat and food are both strong, an ambivalent hesitation appears.</td>
             </tr>
           </tbody>
@@ -155,9 +168,9 @@ export const DOC_SECTIONS: readonly DocSection[] = [
         </p>
         <aside data-callout="note">
           <p>
-            The original specification describes ONNX models (Laya-AI and ReasonLite) for Cases 2 and 3. The current implementation uses
-            deterministic TypeScript controllers with the same structure, and the ONNX runtime is installed but not yet wired in. The names in the
-            interface follow the specification.
+            <strong>No AI model.</strong> The original specification describes ONNX models (Laya-AI and ReasonLite) for Cases 2 and 3. They are not used
+            here: all three controllers are deterministic TypeScript, and the labels on this page say so. The real AI in Fish Pond is the Laya-AI
+            model that drives the fish in the Underwater scene.
           </p>
         </aside>
       </>
@@ -201,29 +214,68 @@ export const DOC_SECTIONS: readonly DocSection[] = [
   },
   {
     id: 'fish-ai',
-    title: 'Fish behaviour (underwater)',
-    summary: 'Population, personalities and how each fish chooses where to go.',
+    title: 'Fish behaviour and Laya-AI (underwater)',
+    summary: 'How an AI model, not code, decides what each goldfish does.',
     content: (
       <>
-        <p>The scene holds one large Jikin goldfish and two smaller Tosakin goldfish, loaded once from real GLB models and cloned.</p>
+        <p>
+          The scene holds one large Jikin goldfish and two smaller Tosakin goldfish, loaded once from real GLB models and cloned. Their decisions come
+          from <strong>Laya-AI</strong>, an open System 1 decision model that runs in your browser through ONNX Runtime Web. Switch it on with the
+          Enable Laya-AI chip. With it off, the fish only drift: there is no scripted fallback that decides for them.
+        </p>
+        <h3>What the model decides</h3>
+        <table>
+          <caption>Decisions made by Laya-AI</caption>
+          <thead>
+            <tr><th scope="col">Decision</th><th scope="col">What the model is asked</th><th scope="col">What happens</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Flee</td><td>Yes or no: &quot;A human hand is next to the goldfish&quot;, given a plain description of where the hand is</td><td>At 50% or more the fish flees away from the cursor</td></tr>
+            <tr><td>Eat</td><td>Yes or no: &quot;The fish should go and eat the food now&quot;, given the fish&apos;s first-person view</td><td>At 50% or more the fish swims to the nearest pellet</td></tr>
+            <tr><td>Where to swim</td><td>Choice between four candidate spots, each described in words (distance, cover, company, depth)</td><td>The chosen spot becomes the next destination</td></tr>
+          </tbody>
+        </table>
+        <h3>What stays in code</h3>
+        <p>
+          Code only carries out what the model decided and keeps the world physical: steering and speed, the direction that points away from the
+          cursor, personal space between fish, the seabed and rocks, the tank walls, body pose, and swallowing a pellet that reaches the mouth. It never
+          chooses to flee, eat or travel. A question is only asked when it applies: the flee question while a hand is near and the eat question while food
+          is near, and a fish with a hand near is asked at once, nearest first, ahead of everything else.
+        </p>
+        <h3>Temperaments</h3>
         <table>
           <caption>Temperaments</caption>
           <thead>
-            <tr><th scope="col">Fish</th><th scope="col">Temperament</th><th scope="col">Effect</th></tr>
+            <tr><th scope="col">Fish</th><th scope="col">Temperament</th><th scope="col">Effect on movement</th></tr>
           </thead>
           <tbody>
-            <tr><td>Jikin</td><td>Calm elder</td><td>Slow, less sociable, hard to startle</td></tr>
-            <tr><td>Tosakin</td><td>Bold forager</td><td>Greedy, fast, wanders more</td></tr>
-            <tr><td>Tosakin</td><td>Shy follower</td><td>Easily startled, very sociable, follows others</td></tr>
+            <tr><td>Jikin</td><td>Calm elder</td><td>Slow, wanders gently</td></tr>
+            <tr><td>Tosakin</td><td>Bold forager</td><td>Fast, wanders more</td></tr>
+            <tr><td>Tosakin</td><td>Shy follower</td><td>Slightly slower, wanders steadily</td></tr>
           </tbody>
         </table>
-        <h3>Decision priority</h3>
-        <ol>
-          <li><strong>Cursor threat:</strong> the cursor is a ray through the scene; only fish close to the ray flee, and the radius scales with size and boldness.</li>
-          <li><strong>Food:</strong> hungry fish swim to pellets, and smaller fish yield food to the big one.</li>
-          <li><strong>Social:</strong> fish of the same species school loosely; small fish avoid the large one.</li>
-          <li><strong>Path following:</strong> otherwise each fish scores random spots by taste (cover versus open water, company, trip length, crowding), swims there in wide curves with speed variation, dwells one to three seconds, then repeats.</li>
-        </ol>
+        <p>The temperament label is also given to the model when it picks a destination.</p>
+        <h3>How fast it is</h3>
+        <p>
+          A flee decision takes about 0.7 s on a desktop with hardware graphics, and the first fish reacts 1.1 to 1.9 s after the pointer enters the scene (measured on a 16-thread laptop); eat and destination decisions take about 1.2 s.
+          The model runs in a Web Worker, so the scene stays smooth, and a fish keeps acting on its last answer until the next one arrives. The first
+          visit downloads about 524 MB of model weights; the browser keeps them, so later visits start in seconds. Slow or small devices can take much longer
+          or fail to start, in which case the fish stay idle and the chip says so.
+        </p>
+        <h3>The wording is part of the experiment</h3>
+        <p>
+          Laya is a text classifier trained on business workflows such as support tickets, invoices and security incidents. It is not trained on fish. Testing
+          it on this task showed what it can and cannot do:
+        </p>
+        <ul>
+          <li>It answers &quot;should the fish eat?&quot; reliably (86 to 93% when food is in view, near 0% when it is not).</li>
+          <li>It cannot grade a danger by distance or speed. Asked &quot;is the fish in danger?&quot; it gave about the same answer for a hand 10 cm away and one 3 m away, with both published checkpoints. The only wording that separated them put the word &quot;danger&quot; into the situation text, which would have been code making the decision, so it was not used.</li>
+          <li>It does recognise a plain description of closeness. &quot;A human hand is in the water right next to the goldfish&quot; scored 76 to 80%, and &quot;far across the tank&quot; scored 3 to 31%. So the situation is described in place words, and the model decides on those.</li>
+          <li>Small changes in wording change the answer a lot, so the exact sentences are fixed in <code>fish-perception-text.ts</code>.</li>
+        </ul>
+        <p>
+          These are limits of the model, not tuning that code covers up. When the model disagrees with what you would expect, that is the experiment working.
+        </p>
         <h3>Food and collisions</h3>
         <p>
           A click drops a cluster of 26 pellets (instanced, drag-limited sinking, slight drift). Settled pellets dissolve after 34 seconds, and pellets on
@@ -232,8 +284,10 @@ export const DOC_SECTIONS: readonly DocSection[] = [
         </p>
         <h3>The live readout</h3>
         <p>
-          The bottom-right text on the underwater page shows, for each fish, its state, speed, depth, appetite, panic and distance to its target, updated
-          four times a second. Values are colour-coded only when active: amber for hunger and eating, rose for fleeing or panic, cyan for entering, emerald for calm.
+          The bottom-right text on the underwater page shows, for each fish, a unique marker (#1, #2, #3), its state, appetite, panic and the latest Laya answers (flee and eat,
+          as percentages), updated four times a second. A dash means the model has not answered yet. Hover a fish, or its block, and a small arrow label with the marker,
+          name and state follows the fish for about four seconds while its block scales up. The chip bottom-left shows the
+          model status and the time per decision.
         </p>
       </>
     ),
@@ -250,7 +304,9 @@ export const DOC_SECTIONS: readonly DocSection[] = [
             <tr><th scope="col">Input</th><th scope="col">Action</th></tr>
           </thead>
           <tbody>
-            <tr><td>Mouse move</td><td>Camera parallax; fish near the cursor ray flee</td></tr>
+            <tr><td>Mouse move</td><td>Camera parallax; the cursor is the hand Laya-AI judges (when enabled)</td></tr>
+            <tr><td>Hover a fish or its readout block</td><td>An arrow label with the fish&apos;s #marker, name and state follows it for about 4 seconds and its readout block scales up</td></tr>
+            <tr><td>Enable Laya-AI chip</td><td>Downloads and starts the model (about 524 MB, kept by the browser); click again to switch it off</td></tr>
             <tr><td>Click or tap the water</td><td>Drop fish food</td></tr>
             <tr><td>W A S D</td><td>Move forward, left, back, right</td></tr>
             <tr><td>Arrow keys</td><td>Turn left and right, look up and down</td></tr>
@@ -398,7 +454,8 @@ export const DOC_SECTIONS: readonly DocSection[] = [
             <tr><td>Framework</td><td>Next.js 16 (App Router), React 19, TypeScript</td></tr>
             <tr><td>3D</td><td>Three.js, Triforge shader-core and compositor-core</td></tr>
             <tr><td>Styling</td><td>Strata CSS utilities plus CSS Modules and design tokens</td></tr>
-            <tr><td>Hosting</td><td>Vercel (static pages, no server code)</td></tr>
+            <tr><td>Fish AI</td><td>Laya-AI (ONNX, int8) through ONNX Runtime Web in a Web Worker, tokenised with Hugging Face Tokenizers</td></tr>
+            <tr><td>Hosting</td><td>Vercel (static pages, no server code); model weights are fetched from Hugging Face by the browser</td></tr>
           </tbody>
         </table>
         <pre>
@@ -411,8 +468,10 @@ export const DOC_SECTIONS: readonly DocSection[] = [
   simulation/
     arena/             System 1, System 2, arbiter, memory, scenarios
     controllers/       benchmark Cases 1 to 3
-    underwater/        engine, Triforge graphs, fish AI, settings
+    underwater/        engine, Triforge graphs, fish motor control, settings
+      ai/              Laya runtime, worker, perception wording, fish intent controller
   types/               shared types for arena, benchmark and underwater
+scripts/               copy-ort.ts (copies the ONNX Runtime wasm into public/ort)
 public/                goldfish models, icons, social preview images`}</code>
         </pre>
       </>
@@ -434,7 +493,9 @@ npm run start      # serve the build`}</code>
         </pre>
         <p>
           The site is a static Next.js build and deploys to Vercel with no configuration. Set <code>NEXT_PUBLIC_SITE_URL</code> to the final address so canonical
-          URLs, the sitemap and social previews point at it.
+          URLs, the sitemap and social previews point at it. <code>npm install</code> copies the ONNX Runtime wasm files into <code>public/ort</code>, and the
+          site sends cross-origin isolation headers (needed for threaded WebAssembly). The model weights are not part of the deployment: the browser fetches them
+          from Hugging Face, so the hosting plan only serves the small app.
         </p>
       </>
     ),
@@ -451,8 +512,12 @@ npm run start      # serve the build`}</code>
           <li>The environment reflection map is baked once at load, so changing the water colour does not update reflections until a reload.</li>
           <li>Rocks have no collision for the free camera.</li>
           <li>Fish behaviour, terrain shape and scenery placement are not yet adjustable in the settings sidebar.</li>
-          <li>ONNX models for benchmark Cases 2 and 3 are planned; controllers are deterministic until then.</li>
-          <li>Next on the list: System 2 deliberation for the underwater fish, more feeding animation, and touch support for feeding in the benchmark.</li>
+          <li>Laya-AI is a general text classifier, not a fish model. It cannot grade danger by distance, so flee decisions rest on plain place words (see the wording notes above).</li>
+          <li>A decision takes about a second per fish and the model needs a large download and a lot of memory while loading (estimated at 1 to 2 GB, not yet measured). Phones and low-end laptops may not manage it.</li>
+          <li>Without Laya-AI enabled the underwater fish only drift. The landing page backdrop runs the same scene without the model, so its fish drift too.</li>
+          <li>Fish do not school: grouping would have to come from the model choosing destinations near each other.</li>
+          <li>The Arena and Benchmark are scripted. A second model (ReasonLite, a reasoning model) for System 2 is not implemented.</li>
+          <li>Next on the list: System 2 reasoning for the underwater fish, more feeding animation, and touch support for feeding in the benchmark.</li>
         </ul>
       </>
     ),
@@ -469,6 +534,27 @@ npm run start      # serve the build`}</code>
           {' '}
           <a href="https://github.com/AftabIbrahimKazi/fish-pond" rel="noopener noreferrer">GitHub</a>.
         </p>
+        <h3>Laya-AI</h3>
+        <ul>
+          <li>
+            <strong>Laya</strong> (the decision model) was created by Nandakishor M and Convai Innovations:
+            {' '}
+            <a href="https://huggingface.co/convaiinnovations/laya" rel="noopener noreferrer">convaiinnovations/laya</a> (Apache-2.0).
+          </li>
+          <li>
+            The <strong>8-bit browser build and the runtime</strong> that Fish Pond&apos;s Laya code is ported from were made by nvkudva:
+            {' '}
+            <a href="https://github.com/nvkudva/laya-web" rel="noopener noreferrer">github.com/nvkudva/laya-web</a> and
+            {' '}
+            <a href="https://huggingface.co/nvkudva/laya-web-q8" rel="noopener noreferrer">nvkudva/laya-web-q8</a> (Apache-2.0 weights). The laya-web repository does not
+            state a licence for its code; it is used here with credit, and will be removed or replaced if its author asks.
+          </li>
+          <li>
+            Also used: <a href="https://github.com/microsoft/onnxruntime" rel="noopener noreferrer">ONNX Runtime Web</a> by Microsoft and
+            {' '}
+            <a href="https://github.com/huggingface/tokenizers.js" rel="noopener noreferrer">Tokenizers</a> by Hugging Face.
+          </li>
+        </ul>
       </>
     ),
   },

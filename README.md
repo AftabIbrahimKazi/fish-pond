@@ -6,7 +6,7 @@
 
 **Interactive 3D fish behaviour experiments that run entirely in your browser.**
 
-A cognitive arena, a three-way controller benchmark and a realistic Triforge-shaded underwater scene, wrapped in a Liquid Glass interface.
+A scripted cognitive arena, a scripted three-way controller benchmark and a realistic Triforge-shaded underwater scene whose goldfish are driven by an AI model (Laya-AI), wrapped in a Liquid Glass interface.
 
 [![Live demo](https://img.shields.io/badge/live%20demo-fish--pond--mu.vercel.app-0a2a33?style=for-the-badge&logo=vercel&logoColor=white)](https://fish-pond-mu.vercel.app)
 [![Documentation](https://img.shields.io/badge/docs-read%20online-1f7a8c?style=for-the-badge)](https://fish-pond-mu.vercel.app/docs)
@@ -51,6 +51,8 @@ A cognitive arena, a three-way controller benchmark and a realistic Triforge-sha
 
 Fish Pond is a set of browser experiments about how an artificial fish can decide what to do. It compares mechanical reflexes, probabilistic presets and continuous reasoning, and it shows the difference between *instinct* (System 1) and *deliberation* (System 1+2). Everything runs client-side with Next.js, TypeScript, Three.js and Triforge shader graphs: there is no backend, no account and no tracking.
 
+**Where the AI is.** Only the Underwater scene uses an AI model: [Laya-AI](https://huggingface.co/convaiinnovations/laya), an open System 1 decision model that runs in your browser through ONNX Runtime Web, decides what each goldfish does (flee, eat, where to swim). The Cognitive Arena and the Benchmark are scripted TypeScript simulations with **no AI model**, and the interface says so. Details and honest limits: [docs/fish-ai.md](docs/fish-ai.md).
+
 It began as an implementation of an architectural benchmark specification (see [`project-statement/`](project-statement/fish_pond_benchmark_specification.md)) and grew into a small lab with a consistent visual language.
 
 ## The four pages
@@ -58,9 +60,9 @@ It began as an implementation of an architectural benchmark specification (see [
 | Page | What it is | Try it |
 |---|---|---|
 | **`/`** Landing | The live underwater scene behind four glass cards | Click the water to feed the fish |
-| **`/arena`** Cognitive Arena | One fish in a wide pond: instant reflexes versus slow appraisal of unknown objects, with visible short-term memory | Place stimuli, watch the Fish Mind readout |
-| **`/benchmark`** Visual Telemetry Benchmark | Three controllers side by side, fed identical inputs, with live telemetry | Steer a threat with the cursor, run the test cycle |
-| **`/underwater`** Underwater | A realistic goldfish scene with a settings sidebar, free camera and touch pads | Tune about 60 graphics settings, fly with WASD |
+| **`/arena`** Cognitive Arena | One fish in a wide pond: scripted reflexes versus slow appraisal of unknown objects, with visible short-term memory (no AI) | Place stimuli, watch the Fish Mind readout |
+| **`/benchmark`** Visual Telemetry Benchmark | Three scripted controllers side by side, fed identical inputs, with live telemetry (no AI) | Steer a threat with the cursor, run the test cycle |
+| **`/underwater`** Underwater | A realistic goldfish scene driven by Laya-AI, with a settings sidebar, free camera and touch pads | Enable Laya-AI, tune about 60 graphics settings, fly with WASD |
 | **`/docs`** Documentation | The full, deep-dive documentation, shown on the site | Read how every system works |
 
 <p align="center">
@@ -70,15 +72,15 @@ It began as an implementation of an architectural benchmark specification (see [
 
 ## Features
 
-### Cognitive Arena
+### Cognitive Arena (scripted, no AI)
 - Eight stimuli (shadow, glass tap, light flash, food, novel rock, novel food, leaf, lure) with hotkeys `1`-`8`.
 - **System 1** reacts to known stimuli in 80-120 ms through a weighted lottery of designer presets.
 - **System 1+2** appraises unknown objects in five phases (notice, approach, inspect, probe, verdict) taking 0.7-4.5 s depending on novelty.
 - An **arbiter** lets instinct always win, aborts deliberation and locks System 2 out for 2.5 s.
 - **Short-term memory** with an adjustable span (5-120 s) and four scripted scenarios.
 
-### Visual Telemetry Benchmark
-- Case 1 programmed reflex, Case 2 preset lottery, Case 3 dual-process reasoning.
+### Visual Telemetry Benchmark (scripted, no AI)
+- Case 1 programmed reflex, Case 2 preset lottery, Case 3 blended intent. All three are plain TypeScript.
 - A shared telemetry bus, seeded randomness and identical safety clamping keep the comparison fair.
 - A 16-second automated test cycle and an interactive cursor threat.
 - A comparison matrix that opens from the **Compare** chip.
@@ -86,7 +88,8 @@ It began as an implementation of an architectural benchmark specification (see [
 ### Underwater scene
 - Every custom material is a Triforge node graph (no hand-written GLSL): sand, rocks, seagrass, dome, water surface, light shafts and fish shadows.
 - Beer-Lambert water absorption, caustics, dappling, marine snow, bloom, colour grade, vignette and film grain.
-- Three goldfish with personalities, food that sinks and is eaten, cursor-aware fleeing and a live behaviour readout.
+- Three goldfish with personalities and food that sinks and is eaten. **Laya-AI decides** whether each fish flees the cursor, goes for food and where it swims; code only carries the decisions out. Opt-in (about 524 MB, kept by the browser); with it off the fish only drift.
+- A compact live readout with a unique #marker per fish and the model's latest flee and eat answers; hovering a fish shows an arrow label and scales its block.
 - A **Scene settings** sidebar with 62 settings, typed values, JSON export and reset.
 - WASD + arrow-key navigation and on-screen touch pads.
 
@@ -97,8 +100,10 @@ It began as an implementation of an architectural benchmark specification (see [
 
 | Input | Action |
 |---|---|
-| Mouse move | Camera parallax; fish near the cursor ray flee |
+| Mouse move | Camera parallax; the cursor is the hand Laya-AI judges (underwater, when enabled) |
 | Click / tap water | Drop fish food |
+| Hover a fish | Arrow label with its #marker, name and state, and its readout block scales up (underwater) |
+| Enable Laya-AI chip | Download and start the model; click again to switch it off (underwater) |
 | `W` `A` `S` `D` | Move (underwater) |
 | Arrow keys | Turn and look (underwater) |
 | Touch pads | Move and Look on phones and touch screens (underwater) |
@@ -106,7 +111,7 @@ It began as an implementation of an architectural benchmark specification (see [
 
 ## Getting started
 
-**Prerequisites:** Node.js 20 or newer (tested on 24) and npm 10 or newer. A browser with WebGL 2.
+**Prerequisites:** Node.js 22.6 or newer (tested on 24) and npm 10 or newer. A browser with WebGL 2 and WebAssembly threads for Laya-AI.
 
 ```bash
 git clone --recurse-submodules https://github.com/AftabIbrahimKazi/fish-pond.git
@@ -115,7 +120,7 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000>. The `--recurse-submodules` flag pulls `ai-dev-kit`, a development-only skills library; the app does not need it to build.
+Open <http://localhost:3000>. The `--recurse-submodules` flag pulls `ai-dev-kit`, a development-only skills library; the app does not need it to build. `npm install` also copies the ONNX Runtime wasm files into `public/ort/` (`scripts/copy-ort.ts`).
 
 Optional environment variable:
 
@@ -139,12 +144,13 @@ Optional environment variable:
 fish-pond/
 ├── docs/                   Markdown documentation and README images
 ├── project-statement/      The original benchmark specification
+├── scripts/                copy-ort.ts (ONNX Runtime wasm into public/ort)
 ├── public/                 Goldfish models, icons, social previews, llms.txt
 ├── src/
 │   ├── app/                Routes, global CSS, design tokens, sitemap, robots, manifest
 │   ├── components/         Shared UI and per-experiment components
 │   ├── config/             Site constants and SEO builders
-│   ├── simulation/         Arena, benchmark controllers and the underwater engine
+│   ├── simulation/         Arena, benchmark controllers, the underwater engine and its Laya-AI layer (`underwater/ai/`)
 │   └── types/              Shared types
 ├── coding-standards/       Layered coding standards (CSS, HTML, TS, SEO, a11y, QA)
 └── ai-dev-kit/             Development skills library (git submodule)
@@ -158,6 +164,7 @@ See [docs/architecture.md](docs/architecture.md) for a guided tour.
 - **Triforge everywhere on the underwater scene.** Shading is expressed as node graphs; a compositor chain grades the final frame.
 - **Settings pipeline.** Each setting is applied *live*, by recompiling materials, or by rebuilding the compositor, with a short debounce for the latter two.
 - **Deterministic simulations.** Randomness is seeded; the arena and benchmark controllers are TypeScript simulations, not machine-learning models.
+- **Laya-AI for the underwater fish.** A Web Worker runs the quantised model (ONNX Runtime Web, threaded wasm); a fish intent controller describes each fish's situation in words, asks the model yes/no and choice questions, and writes the answers onto the fish. Code never decides what a fish does.
 
 Read more: [architecture](docs/architecture.md), [fish AI](docs/fish-ai.md), [controls](docs/controls.md).
 
@@ -180,7 +187,7 @@ Keyboard-operable controls with visible focus rings, 40 px hit areas, labelled i
 
 ## Performance
 
-Adaptive pixel ratio, scenes that pause when off-screen, throttled React telemetry, stable layouts and a landing page that reveals the water before loading the 12 MB of goldfish models. Real-GPU measurements are still to do; see [Known limits](#known-limits-and-roadmap).
+Adaptive pixel ratio, scenes that pause when off-screen, throttled React telemetry, stable layouts and a landing page that reveals the water before loading the 12 MB of goldfish models. Laya-AI is opt-in because its weights are about 524 MB; it runs in a Web Worker so the scene stays smooth (31 to 44 fps measured with the model running on an AMD integrated GPU, about 0.7 s per flee decision, first reaction 1.1 to 1.9 s). See [Known limits](#known-limits-and-roadmap).
 
 ## SEO and sharing
 
@@ -188,7 +195,7 @@ Unique titles and descriptions, canonical URLs, Open Graph and Twitter cards wit
 
 ## Deployment
 
-The site is a static Next.js build and deploys to Vercel with no configuration. Set `NEXT_PUBLIC_SITE_URL` to your domain. Full steps in [docs/deployment.md](docs/deployment.md).
+The site is a static Next.js build and deploys to Vercel with no configuration (the free plan is enough: the model weights are fetched from Hugging Face by the browser, not served by Vercel). Set `NEXT_PUBLIC_SITE_URL` to your domain. Full steps in [docs/deployment.md](docs/deployment.md).
 
 ## Known limits and roadmap
 
@@ -196,15 +203,17 @@ The site is a static Next.js build and deploys to Vercel with no configuration. 
 - The benchmark cursor threat has no keyboard equivalent.
 - The environment reflection map is baked once at load, so changing the water colour needs a reload to update reflections.
 - Rocks have no collision for the free camera.
-- ONNX models for benchmark Cases 2 and 3 are planned; controllers are deterministic until then.
-- Next: System 2 deliberation for the underwater fish, more feeding animation, touch feeding in the benchmark.
+- Laya-AI is a general text classifier, not a fish model: it answers "should the fish eat?" well but cannot grade danger by distance, so flee decisions rest on plain place words. See [docs/fish-ai.md](docs/fish-ai.md).
+- Laya-AI needs a 524 MB download and a lot of memory while loading; phones and low-end laptops may not manage it. Without it the underwater fish only drift (the landing backdrop included).
+- The Arena and Benchmark are scripted. ReasonLite (System 2 reasoning) is not implemented.
+- Next: System 2 reasoning for the underwater fish, more feeding animation, touch feeding in the benchmark.
 
 ## Documentation index
 
 | Document | Covers |
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | Modules, data flow, engines |
-| [docs/fish-ai.md](docs/fish-ai.md) | Arena, benchmark and underwater behaviour systems |
+| [docs/fish-ai.md](docs/fish-ai.md) | Arena and benchmark (scripted) and the Laya-AI underwater fish |
 | [docs/scene-settings.md](docs/scene-settings.md) | The settings sidebar and JSON workflow |
 | [docs/controls.md](docs/controls.md) | Mouse, keyboard and touch |
 | [docs/design-system.md](docs/design-system.md) | Tokens, glass rules, CSS conventions |
@@ -221,4 +230,7 @@ Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) an
 
 ## Credits
 
-Built by [Aftab Ibrahim Kazi](https://github.com/AftabIbrahimKazi) with Next.js, React, Three.js, the Triforge shader and compositor packages and Strata CSS. The goldfish models ship in `public/`; confirm their licences before redistributing them. No licence file has been chosen for the source yet, so all rights are reserved until one is added.
+Built by [Aftab Ibrahim Kazi](https://github.com/AftabIbrahimKazi) with Next.js, React, Three.js, the Triforge shader and compositor packages and Strata CSS.
+
+**Laya-AI.** The decision model, [Laya](https://huggingface.co/convaiinnovations/laya), was created by Nandakishor M and Convai Innovations (Apache-2.0). The 8-bit browser build ([nvkudva/laya-web-q8](https://huggingface.co/nvkudva/laya-web-q8)) and the runtime that this project's Laya code is ported from ([nvkudva/laya-web](https://github.com/nvkudva/laya-web)) were made by **nvkudva**. The laya-web repository does not state a licence for its code; it is used here with credit and will be removed or replaced if its author asks. Also used: [ONNX Runtime Web](https://github.com/microsoft/onnxruntime) (Microsoft) and [Tokenizers](https://github.com/huggingface/tokenizers.js) (Hugging Face).
+ The goldfish models ship in `public/`; confirm their licences before redistributing them. No licence file has been chosen for the source yet, so all rights are reserved until one is added.

@@ -3,7 +3,8 @@ Author: Aftab Ibrahim Kazi
 Site: https://github.com/AftabIbrahimKazi
 
 /* SITE */
-Last update: 2026/10/01
+Last update: 2026/10/02
 Language: English
 Standards: HTML5, CSS3, WebGL 2, TypeScript
-Components: Next.js, React, Three.js, Triforge, Strata CSS
+Components: Next.js, React, Three.js, Triforge, Strata CSS, ONNX Runtime Web, Hugging Face Tokenizers
+AI model: Laya by Nandakishor M and Convai Innovations; browser build and runtime by nvkudva
