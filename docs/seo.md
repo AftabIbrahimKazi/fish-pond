@@ -44,6 +44,10 @@ Everything absolute derives from `NEXT_PUBLIC_SITE_URL` (default `https://fish-p
 - `docs/images/social-preview.jpg` is ready to upload as the repository social preview (Settings, General, Social preview).
 - `CITATION.cff` enables GitHub's "Cite this repository" button.
 
+## External listings and backlinks
+
+- Listed in the Showcase on [Three.js Resources](https://threejsresources.com/showcase/fish-pond?ref=badge), a curated directory of Three.js projects — credited in the README header and as a corner badge on `/` and `/docs`.
+
 ## Checking it
 
 - Validate structured data at <https://validator.schema.org> and <https://search.google.com/test/rich-results>.
