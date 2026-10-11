@@ -1,0 +1,71 @@
+/* ================================
+   TOP HALF — Rules
+   ================================ */
+
+.fp-featured-badge {
+  backdrop-filter: blur(var(--fp-glass-blur)) saturate(var(--fp-glass-saturate));
+  background-color: var(--fp-glass-tint);
+  border: 1px solid var(--fp-glass-border);
+  border-radius: var(--fp-glass-radius-control);
+  /* Stacked above the Next.js dev toolbar indicator (bottom-left, dev mode only). Strata has no
+     arbitrary utility for a calc() expressing this offset — confirmed absent from the compiled
+     output, not guessed — so it stays real CSS here per the no-silent-workaround rule. */
+  bottom: calc(var(--fp-space-md) + var(--fp-glass-hit) + var(--fp-space-xs));
+  box-shadow: inset 0 1px 0 var(--fp-glass-highlight), 0 var(--fp-glass-lift) var(--fp-glass-lift-blur) var(--fp-glass-shadow);
+  left: var(--fp-space-md);
+  text-decoration: none;
+  transition: background-color var(--fp-duration-normal) ease-in-out;
+}
+
+.fp-featured-badge:hover {
+  background-color: var(--fp-glass-tint-hover);
+}
+
+.fp-featured-badge:focus-visible {
+  outline: 2px solid var(--fp-glass-text);
+  outline-offset: 2px;
+}
+
+.fp-featured-badge-logo {
+  /* Three.js Resources serves its logo mark with a fixed dark-grey fill (#383838) meant for
+     light surfaces — invisible on this glass pane. No white variant is published, so the mark
+     is forced white here to match the glass theme's white-icon convention. */
+  filter: brightness(0) invert(1);
+  height: var(--fp-glass-icon);
+  width: var(--fp-glass-icon);
+}
+
+.fp-featured-badge-eyebrow {
+  color: var(--fp-glass-text-muted);
+  font-size: var(--fp-font-size-xxxs);
+  font-weight: var(--fp-font-weight-medium);
+}
+
+.fp-featured-badge-title {
+  color: var(--fp-glass-text);
+  font-size: var(--fp-font-size-xs);
+  font-weight: var(--fp-font-weight-semibold);
+}
+
+/* ================================
+   BOTTOM HALF — Media Queries
+   ================================ */
+
+@media (max-width: 575.98px) {
+  .fp-featured-badge-eyebrow {
+    display: none;
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .fp-featured-badge {
+    background-color: var(--fp-glass-tint-strong);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .fp-featured-badge {
+    backdrop-filter: none;
+    background-color: var(--fp-glass-tint-strong);
+  }
+}

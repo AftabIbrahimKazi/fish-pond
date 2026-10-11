@@ -16,6 +16,10 @@ export const REPO_URL = 'https://github.com/AftabIbrahimKazi/fish-pond' as const
 export const OG_IMAGE_WIDTH = 1200 as const;
 export const OG_IMAGE_HEIGHT = 630 as const;
 export const LAST_MODIFIED = '2026-10-02' as const;
+export const THREEJS_RESOURCES_BADGE_URL = 'https://threejsresources.com/showcase/fish-pond?ref=badge' as const;
+/** Self-hosted: the site's cross-origin-isolation headers (COEP require-corp, for the Laya-AI WASM
+ *  model) block the hotlinked original, which sends no Cross-Origin-Resource-Policy header. */
+export const THREEJS_RESOURCES_LOGO_URL = '/threejs-resources-logo.svg' as const;
 
 export const SITE_DESCRIPTION =
   'Three fish experiments: two scripted simulations with no AI, and a realistic underwater scene where the Laya-AI model decides what each goldfish does.' as const;

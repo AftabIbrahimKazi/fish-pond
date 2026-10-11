@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { FeaturedBadge } from '../../components/FeaturedBadge';
 import { ArrowLeftIcon } from '../../components/HudIcons';
 import { LandingBackdrop } from '../../components/landing/LandingBackdrop';
 import { DOC_SECTIONS } from './docs-content';
@@ -10,6 +11,7 @@ export default function DocsPage() {
   return (
     <>
       <LandingBackdrop />
+      <FeaturedBadge />
       <main className={`${styles['fp-docs']} d-flex flex-column gap-[var(--fp-space-xl)] p-[var(--fp-space-md)] mx-auto`}>
         <header className="d-flex flex-column align-items-start gap-[var(--fp-space-md)]">
           <Link href="/" className={`${styles['fp-docs-back']} d-inline-flex align-items-center justify-content-center gap-[var(--fp-space-xs)] px-[var(--fp-space-default)] py-[var(--fp-space-xs)]`}>

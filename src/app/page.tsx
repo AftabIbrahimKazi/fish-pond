@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { AiNotice, AiNoticeKind } from '../components/AiNotice';
+import { FeaturedBadge } from '../components/FeaturedBadge';
 import { ArrowRightIcon } from '../components/HudIcons';
 import { LandingBackdrop } from '../components/landing/LandingBackdrop';
 import { JsonLd } from '../components/seo/JsonLd';
@@ -60,6 +61,7 @@ export default function LandingPage() {
     <>
       <JsonLd data={buildExperimentListJsonLd()} />
       <LandingBackdrop />
+      <FeaturedBadge />
       <main className={`${styles['fp-landing']} d-flex flex-column justify-content-center align-items-center flex-grow-1 p-[var(--fp-space-xl)] gap-[var(--fp-space-xl)]`}>
       <header className="d-flex flex-column align-items-center gap-[var(--fp-space-sm)]">
         <h1 className={styles['fp-landing-title']}>Fish Pond</h1>
