@@ -166,6 +166,7 @@
 .fp-docs-article code {
   background-color: var(--fp-glass-fill);
   border-radius: var(--fp-glass-radius-control);
+  color: var(--fp-glass-text);
   font-family: var(--fp-font-family-mono);
   font-size: var(--fp-font-size-xs);
   padding: var(--fp-space-xxxs) var(--fp-space-xs);

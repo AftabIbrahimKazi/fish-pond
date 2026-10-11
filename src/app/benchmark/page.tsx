@@ -8,6 +8,7 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 
+import { AiNotice } from '../../components/AiNotice';
 import { BenchmarkViewport } from '../../components/BenchmarkViewport';
 import {
   CloseIcon,
@@ -20,7 +21,6 @@ import {
   TimerIcon,
   TrashIcon,
 } from '../../components/HudIcons';
-import { AiNotice } from '../../components/AiNotice';
 import { telemetryBus } from '../../simulation/telemetry-bus';
 import { BenchmarkCase, InputMode } from '../../types/benchmark';
 
