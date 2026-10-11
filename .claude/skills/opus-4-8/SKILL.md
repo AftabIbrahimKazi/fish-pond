@@ -5,6 +5,8 @@ description: Claude Opus 4.8 (claude-opus-4-8) protocol — prompting, effort/th
 
 # Opus 4.8 — Workhorse-Flagship Protocol
 
+> Previous generation. Opus 5.5 (`opus-5-5`) is the current Opus, cheaper and stronger — prefer that skill for new work; use this one for projects pinned to `claude-opus-4-8`.
+
 Model ID: `claude-opus-4-8` · 1M context · 128K max output · $5 in / $25 out per MTok. The default choice for serious coding, agentic, and knowledge work — Fable-adjacent capability at half the price.
 
 ## Staleness guard
@@ -36,4 +38,4 @@ Model facts here (ID, pricing, limits, API rules) were verified 2026-07. If a ne
 ## Token discipline
 - Remove forced-progress scaffolding ("summarize every N tool calls") — 4.8 does this natively.
 - Cache-first prompt layout: stable system + tools first, volatile content after the last breakpoint; verify with `usage.cache_read_input_tokens`.
-- Delegate cheap fan-out (search, file sweeps, classification) to Haiku 4.5 subagents; keep 4.8 as orchestrator.
+- Delegate cheap fan-out (search, file sweeps, classification) to Haiku 5.5 subagents; keep 4.8 as orchestrator.

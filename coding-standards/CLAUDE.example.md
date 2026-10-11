@@ -1,30 +1,32 @@
 # CLAUDE.example.md
 
-This is a template for the `CLAUDE.md` file that must sit at the root of your project.
-Copy this file to your project root and rename it to `CLAUDE.md`, then fill in the
-project-specific values for your project.
+This is a template for your project's session-protocol file, which must sit at the
+project root under the name your coding tool auto-loads: `CLAUDE.md` for Claude Code,
+`AGENTS.md` for OpenCode and other agents.md-convention tools. (This template's
+filename is historical; its body is tool-neutral.) Copy it there, then fill in the
+project-specific values.
 
-Do not rename or move this file — it is a template only. The active file must be
-`CLAUDE.md` at the project root. This file has no effect on its own.
+Do not rename or move this file — it is a template only. The active file must be the
+tool's own instruction file at the project root. This file has no effect on its own.
 
 ---
 
-# CLAUDE.md — [Project Name]
+# [CLAUDE.md | AGENTS.md] — [Project Name]
 
-This file is auto-loaded by Claude Code at the start of every session. It defines the project context, active standards, and behavioural contract for all AI work on this project.
+This file is auto-loaded by your coding tool (Claude Code, OpenCode, …) at the start of every session. It defines the project context, active standards, and behavioural contract for all AI work on this project.
 
 ---
 
 ## Session Start Protocol
 
-At the start of every session Claude must:
+At the start of every session the AI assistant must:
 
-1. Begin every response with `[CX]` — signals context is active
+1. Begin every response with `[CX <Context code>]` (or bare `[CX]` if no code is set below) — signals context is active
 2. On the first response, declare standards as **not yet loaded**
 3. Read `coding-standards/index.md` — loads the full standards map — only on the first turn that actually touches a file (edit, create, or a request needing a convention). Conversational, planning, or review-only turns never trigger this read.
 4. Once loaded, confirm active standards below and declare them loaded from that point on
 
-If `[CX]` is ever missing from a response the session has lost context. Stop immediately, discard the response, and start a new session.
+If the token is ever missing from a response — or the Context code is missing or wrong — the session has lost context. Stop immediately, discard the response, and start a new session.
 
 ---
 
@@ -51,6 +53,7 @@ If `[CX]` is ever missing from a response the session has lost context. Stop imm
 
 | Property | Value |
 |---|---|
+| Context code | [2–4 chars you choose, e.g. `X7` — letters+digit, not a common string like `OK` or `007`; delete this row to use bare `[CX]`] |
 | Project name | [Your project name] |
 | Framework | [e.g. Astro 6.4.8 / Next.js / None] |
 | CSS framework | [e.g. Bootstrap 5 / None] |
@@ -77,7 +80,7 @@ Never edit a file without loading its standard chain first.
 
 ## AI Behavioural Contract
 
-- Every response starts with `[CX]`
+- Every response starts with `[CX <Context code>]` (bare `[CX]` if no code is set)
 - First response of every session declares standards as not-yet-loaded; standards load lazily on first file-touching turn, not eagerly at session start
 - No restating the task before acting
 - No trailing summaries after completing work

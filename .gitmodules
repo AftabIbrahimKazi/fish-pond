@@ -1,3 +1,4 @@
 [submodule "ai-dev-kit"]
 	path = ai-dev-kit
 	url = https://github.com/AftabIbrahimKazi/ai-dev-kit.git
+	ignore = all

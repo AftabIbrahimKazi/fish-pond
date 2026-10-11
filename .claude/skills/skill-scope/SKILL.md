@@ -1,6 +1,6 @@
 ---
 name: skill-scope
-description: Canonical classification for every skill in the library — permanent-pinned (universal or stack-conditional, decided once at setup), per-session archivable (toggled from the stated next task), and opt-in addons (invisible until explicitly requested). Referenced by install-kit and handover — edit here, not in either.
+description: Canonical skill classification — permanent-pinned (universal or stack-conditional), per-session archivable, opt-in addon. Trigger when classifying, installing, pinning or archiving a skill. Read by install-kit and handover; edit here only.
 metadata:
   type: reference
 ---
@@ -13,7 +13,7 @@ Every skill in the library falls into exactly one of two mechanisms. The mechani
 
 | Mechanism | Meaning | Decided when | Decided by | Override |
 |---|---|---|---|---|
-| **Permanent-pinned** | Fixed for the project's lifetime — either universal, or matched to the project's stack/tooling/model at setup | Once, at install (re-run only if the project's actual stack changes) | AI scan of project files (build files, manifests, config, README/CLAUDE.md) | User can pin-in or pin-out anything from this set, but only by stating it explicitly in-session — never inferred silently by the AI |
+| **Permanent-pinned** | Fixed for the project's lifetime — either universal, or matched to the project's stack/tooling/model at setup | Once, at install (re-run only if the project's actual stack changes) | AI scan of project files (build files, manifests, config, README, session-protocol file) | User can pin-in or pin-out anything from this set, but only by stating it explicitly in-session — never inferred silently by the AI |
 | **Per-session archivable** | A boolean toggle, decided fresh each session from the specific task at hand | Every session, by `handover` | The stated next task | Same rule — explicit statement overrides the default toggle for that session |
 
 **The override rule applies to both mechanisms identically: the AI never unpins a permanent skill or force-includes an archivable one on its own inference. It only acts on what the user has clearly said in the session.**
@@ -33,7 +33,7 @@ Some skills aren't universal, aren't stack-detectable, and aren't task-instance-
 ## Current classification
 
 ### Permanent-pinned — universal (installed always, never scanned for)
-`skill-scope`, `handover`, `coding-standards`, `session-budget`, `agent-usage`, `mode-kernel`, `pre-merge-gate`, `pre-commit`, `debug-protocol`, `intent-capture`, `plan-first`, `interpretation-checkpoint`
+`skill-scope`, `handover`, `coding-standards`, `comment-style`, `session-budget`, `agent-usage`, `mode-kernel`, `pre-merge-gate`, `pre-commit`, `debug-protocol`, `intent-capture`, `plan-first`, `interpretation-checkpoint`
 
 `skill-scope` itself is pinned for a structural reason, not a task-agnostic-trigger reason: both `install-kit` and `handover` reference it by name at runtime in the target project, so its absence silently breaks both mechanisms. Never let it be deselected in Pick mode.
 
@@ -48,26 +48,33 @@ Each fires on a task-agnostic event or is the mechanism doing the classifying it
 | `triforge` | `@triforge/*` dependency |
 | `shopify-toolkit-install` + its pulled-in Shopify skills | Shopify theme structure (`shopify.theme.toml`, `sections/`, `snippets/`), `.shopifycli` |
 | `memory-bank` | existing `memory-bank/` folder, or explicit user choice at install |
-| `fable-5` / `opus-4-8` / `sonnet-5` / `haiku-4-5` / `claude-all-models` / `opus-as-fable` | which model(s) the project states it's driven by (CLAUDE.md, or asked at install if not file-observable) |
+| `fable-5-1` / `opus-5-5` / `sonnet-5-5` / `haiku-5-5` / `haiku-4-5` / `fable-5` / `opus-5` / `opus-4-8` / `sonnet-5` / `claude-all-models` / `opus-as-fable` | which model(s) the project states it's driven by (session-protocol file, or asked at install if not file-observable) |
 | `models/opencode/*` (all) | presence of OpenCode config/usage, or asked at install |
+| *Exclusivity rule* | A project detected as **OpenCode-only** (`.opencode/`/`opencode.json` present, no `.claude/` or `CLAUDE.md`, user confirms) is a negative signal for the Claude model lineup — do not pin `fable-5`/`opus-4-8`/`sonnet-5`/`haiku-5-5`/`haiku-4-5`/`claude-all-models`/`opus-as-fable`/`hooks-enforcement`/`mod-writer`/`mod-setup` unless the user explicitly asks. Mirror: a Claude Code-only project does not pin `models/opencode/*`. A project using both pins both lineups. |
 | `hooks-enforcement` | `.claude/settings.json` hooks already present, or asked at install |
 
 Re-scan trigger: only if the project's actual stack changes — never per-task or per-session.
 
 ### Per-session archivable (handover toggles from the stated next task)
-`perf-audit`, `role-session`, `e2e-scaffold`, `memory-gardener`, `skill-ablation`, `skill-writer`, `install-kit`
+`perf-audit`, `code-audit`, `role-session`, `e2e-scaffold`, `memory-gardener`, `skill-ablation`, `skill-writer`, `mod-writer`, `install-kit`
+
+`code-audit` is archivable like `perf-audit`: it fires on a cleanup or audit task. `pre-merge-gate`'s `edit-check.js` uses its engine when present and falls back to its own frozen copy of the per-edit rules when it is archived, so archiving breaks nothing.
 
 Each fires only on a specific task instance nameable in a next-task line, not a fixed property of the stack.
 
 ### Opt-in addons (never offered by default; install only on explicit request)
-`system1-prefilter`
+`system1-prefilter`, `mcp-manager` (+ its per-server companions, e.g. `stitch`), `mod-setup` (+ the `mods/` folder it installs from)
+
+`mcp-manager` is the opt-in router for every MCP server: one skill, one companion file per server, chosen individually in its own setup interview. Adding a server never adds a skill or a classification row.
+
+`mod-setup` is the same for Claude Code mods (`compat: claude-code-only`): one skill, one folder per mod under `mods/`, each chosen individually after a review of what it touches. Adding a mod adds no skill and no classification row. Three mods run an engine script, a companion of a universal skill that installs with it: `precommit-gate` (`pre-commit`), `edit-check` (`pre-merge-gate`) and `budget-ledger`'s `/budget` (`session-budget`). `guard`, `debug-nudge` and `standards-chain` carry their own rules and need no engine.
 
 Once requested and configured, treat as permanent-pinned — the user's own choice is durable, not re-derived per session or stack-scan.
 
 ## Mechanism split (who actually moves files, and where the override hook lives)
 
 - **install-kit**, at install or explicit re-detect: installs all universal Permanent-pinned skills unconditionally; scans for conditional-pinned signals and installs matches, citing the signal found; asks once for anything not file-observable. Before finalizing, asks the user for any explicit overrides ("also always pin X" / "never pin Y even though the scan matched") and records them.
-- **handover**, every session end: given the stated next task, archives per-session-archivable skills the task doesn't need to `.claude/skills-archive/`, records the archived list + paths in `handover.md`. If the user explicitly states an override for that session ("keep `perf-audit` pinned this time even though it's not a perf task"), handover honors it and notes the override was explicit, not inferred.
+- **handover**, every session end: given the stated next task, archives per-session-archivable skills the task doesn't need to `<tool-dir>/skills-archive/` (`.claude/` or `.opencode/`, matching the skill root), records the archived list + paths in `handover.md`. If the user explicitly states an override for that session ("keep `perf-audit` pinned this time even though it's not a perf task"), handover honors it and notes the override was explicit, not inferred.
 - **Opt-in addons** own their own setup — install-kit and handover never ask an addon's configuration questions on its behalf; they only route the request to that addon's own Setup section.
 
 Neither mechanism silently second-guesses the other, and neither silently second-guesses a user's explicit statement.
