@@ -2,6 +2,18 @@
 
 All notable changes to Fish Pond are recorded here. The version format is `major.feature.patch` (see [versioning standards](coding-standards/versioning-standards.md)); one push is one version bump.
 
+## [0.4.0] - 2026-10-12
+
+### Added
+- **Featured on Three.js Resources** badge on the landing and documentation pages, crediting the project's listing in the Three.js Resources showcase; also noted in the README header and `docs/seo.md`.
+
+### Fixed
+- Inline `<code>` and code blocks on `/docs` picked up Strata CSS's base reboot colour (its danger/red token) because the page's own styles never set a `color` on bare `code` elements; they now use the project's text token.
+- The self-hosted Three.js Resources logo mark (served with a fixed dark fill meant for light surfaces) is rendered white to stay visible against the Liquid Glass panes.
+
+### Changed
+- Re-synced `ai-dev-kit` (the development skills submodule) to its latest commit and reinstalled the updated skills, mods and coding standards.
+
 ## [0.3.0] - 2026-10-02
 
 ### Added
